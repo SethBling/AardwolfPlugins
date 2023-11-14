@@ -11,7 +11,7 @@
    save_state="y"
    date_written="2021-06-01 11:00:00"
    requires="2.0"
-   version="1.001"
+   version="1.002"
    >
 <description trim="y">
 <![CDATA[
@@ -66,8 +66,7 @@
 	/>
 
 	<alias
-		match="^autotrain cap (\d+)$"
-		regexp="y"
+		match="autotrain set cap"
 		enabled="y"
 		script="autotrain_set_cap"
 		sequence="100"
@@ -176,6 +175,7 @@ Stats = {
 }
 
 priorities = GetVariable("priorities")
+cap = GetVariable("cap")
 
 if GetVariable("train_mods") then
 	train_mods = json.decode(GetVariable("train_mods"))
@@ -263,7 +263,7 @@ function help()
 		{"autotrain", "Train according to your priorities"},
 		{"autotrain noprac", "Autotrain, but don't convert practices."},
 		{"autotrain reset", "Reset the plugin's knowledge about your train modifiers/potential/class bonuses."},
-		{"autotrain cap <amount>", "Sets the maximum stat value that will be autotrained."},
+		{"autotrain set cap", "Edit your maximum stats value that will be autotrained."},
 		{"autotrain cap", "View the current autotrain cap."},
 		{"autotrain quiet", "Toggles quiet mode for the 'autotrain' command."},
 		{"autotrain balanced", "Toggles balanced mode (each group of adjacent priorities with equal limits is treated as a balanced group)."},
@@ -377,6 +377,53 @@ function get_priority_list(priorities)
 	return priority_list
 end
 
+function autotrain_set_cap()
+	local new_cap = utils.editbox ("Set Indivual Stat Cap", "Stats Cap", cap or "wis 400\r\ncon 400\r\nluck 400\r\nint 400\r\nstr 400\r\ndex 400")
+	if new_cap then
+		if get_cap_list(new_cap) then			
+			cap = new_cap
+			SetVariable("cap", cap)
+			ColourNote("lime", "", "[Autotrain] Successfully edited stat cap.")
+		end
+	end
+end
+
+function get_cap_list(caps)
+	local ret = {}
+	local line_list = split(caps, "\r\n")
+	local cap_list = {}
+
+	for line,cap in ipairs(line_list) do
+		cap = Trim(cap)
+		if cap == "" then
+			-- Nothing
+		else
+			local parts = split(cap, " ")
+			if #parts ~= 2 then
+				ColourNote("red", "", "[Autotrain] Bad cap at line " .. line .. ": '" .. cap .. "'")
+				return
+			end
+			
+			local stat = parts[1]
+			local stat_cap = tonumber(parts[2])
+			
+			if not Stats[stat] then
+				ColourNote("red", "", "[Autotrain] Invalid stat at line " .. line .. ": " .. stat)
+				return
+			end
+			
+			if not stat_cap or stat_cap <= 0 then
+				ColourNote("red", "", "[Autotrain] Invalid stat threshold at line " .. line .. ": " .. stat_cap)
+				return
+			end
+			
+			cap_list[stat] = stat_cap
+		end
+	end
+	
+	return cap_list
+end
+
 function autotrain()
 	noprac = false
 	try_autotrain()
@@ -454,7 +501,7 @@ function perform_autotrain()
 	
 	local current_stats = get_current_trained()
 	-- Note: this is not correct below level 200
-	local combined_max = 1725 + 25 * tier + potential
+	local combined_max = 1725 + 25 * tier + potential 
 	
 	local max_stats = {}
 	for stat in pairs(Stats) do
@@ -479,17 +526,18 @@ function perform_autotrain()
 	end
 	
 	local priority_list = get_priority_list(priorities)
+	local cap_list = get_cap_list(cap)
 	local train_amounts = {}
 	local train_costs = {}
 	
-	local stat, cost, idx = get_next_autotrain(priority_list, current_stats, current_trains, max_stats, combined_max)
+	local stat, cost, idx = get_next_autotrain(priority_list, current_stats, current_trains, max_stats, combined_max, cap_list)
 	while stat do
 		train_amounts[idx] = (train_amounts[idx] or 0) + 1
 		train_costs[idx] = (train_costs[idx] or 0) + cost
 		current_trains = current_trains - cost
 		current_stats[stat] = current_stats[stat] + 1
 
-		stat, cost, idx = get_next_autotrain(priority_list, current_stats, current_trains, max_stats, combined_max)
+		stat, cost, idx = get_next_autotrain(priority_list, current_stats, current_trains, max_stats, combined_max, cap_list)
 	end
 	
 	local indices_sorted = {}
@@ -512,7 +560,10 @@ function perform_autotrain()
 				ColourTell("white", "", " With ")
 				ColourTell("lime", "", "autotrain cap")
 				ColourTell("white", "", " setting: ")
-				ColourTell("lime", "", GetVariable("cap"))
+				for stat, cap in pairs(cap_list) do
+					ColourTell("lime", "", stat)
+					ColourTell("white", "", cap)
+				end
 			end
 			Note()
 		end
@@ -548,7 +599,15 @@ function perform_autotrain()
 				ColourTell("white", "", "[Autotrain] ")
 				ColourTell("lime", "", "autotrain cap")
 				ColourTell("white", "", " setting: ")
-				ColourTell("lime", "", GetVariable("cap"))
+				if #cap_list ~= 0 then
+					for stat, cap in pairs(cap_list) do
+						ColourTell("lime", "", stat)
+						ColourTell("white", "", cap)
+					end
+				else
+					ColourTell("lime", "", "None")
+				end
+				
 				Note()
 			end
 		else
@@ -568,14 +627,14 @@ function stat_sum(current_stats)
          + current_stats["dex"] + current_stats["con"] + current_stats["luck"]
 end
 
-function get_next_autotrain(priority_list, current_stats, current_trains, max_stats, combined_max)
+function get_next_autotrain(priority_list, current_stats, current_trains, max_stats, combined_max, cap_list)
     if stat_sum(current_stats) >= combined_max then
         return
     end
 
 	for i,priority in ipairs(priority_list) do
-		if want_priority(priority, current_stats, max_stats) then
-			local index = get_balanced_priority(priority_list, i, current_stats, max_stats)
+		if want_priority(priority, current_stats, max_stats, cap_list) then
+			local index = get_balanced_priority(priority_list, i, current_stats, max_stats, cap_list)
 			local stat = priority_list[index].stat
 			local actual_cost = get_train_cost(stat, current_stats[stat])
 			if actual_cost <= current_trains then
@@ -587,7 +646,7 @@ function get_next_autotrain(priority_list, current_stats, current_trains, max_st
 	end
 end
 
-function get_balanced_priority(priority_list, index, current_stats, max_stats)
+function get_balanced_priority(priority_list, index, current_stats, max_stats, cap_list)
 	local target_priority = priority_list[index]
 	local target_cost = target_priority.trains
 	local target_group = target_priority.balanced_group
@@ -599,7 +658,7 @@ function get_balanced_priority(priority_list, index, current_stats, max_stats)
 	while index <= #priority_list do
 		local priority = priority_list[index]
 		if (GetVariable("balanced") and priority.trains == target_cost) or (target_group and priority.balanced_group == target_group) then
-			if want_priority(priority, current_stats, max_stats) and
+			if want_priority(priority, current_stats, max_stats, cap_list) and
 			   current_stats[priority.stat] < best_stat then
 					best_stat = current_stats[priority.stat]
 					best_index = index
@@ -614,17 +673,18 @@ function get_balanced_priority(priority_list, index, current_stats, max_stats)
 	return best_index
 end
 
-function want_priority(priority, current_stats, max_stats)
-	if current_stats[priority.stat] < max_stats[priority.stat] and current_stats[priority.stat] < get_cap() then
-		local cost = get_train_cost(priority.stat, current_stats[priority.stat])
-		if cost <= priority.trains then
-			return true
-		end
-	end
-end
+function want_priority(priority, current_stats, max_stats, cap_list)
+    local stat = priority.stat
+    local statCurrent = current_stats[stat]
+    local statMax = max_stats[stat]
+    local statCap = cap_list[stat]
 
-function get_cap()
-	return tonumber(GetVariable("cap") or 400)
+    if statCurrent < statMax and (statCap == nil or statCurrent < statCap) then
+        local cost = get_train_cost(stat, statCurrent)
+        if cost <= priority.trains then
+            return true
+        end
+    end
 end
 
 function get_train_cost(stat, value)
@@ -713,7 +773,7 @@ StatShortNames = {
     Constitution = "con",
     Luck = "luck",
 }
-
+-- ^(.{13})\: +(\d+) +(-?\d+) +(-?\d+) +(-?\d+) +(\d+) +(\d+)(?: +(\d+))?\*?$
 function train_line(name, line, wc)
     train_mods = train_mods or {}
 
@@ -811,24 +871,16 @@ function potential_buy(name, line, wc)
 end
 
 function autotrain_get_cap()
-	if GetVariable("cap") then
+	local cap_list = get_cap_list(cap)
+	if #cap_list ~= 0 then
 		ColourTell("white", "", "[Autotrain] Stat Cap: ")
-		ColourNote("lime", "", GetVariable("cap"))
+		for stat, cap in pairs(cap_list) do
+			ColourTell("white", "", stat.." ")
+			ColourTell("lime", "", cap.." ")
+		end
 	else
 		ColourTell("white", "", "[Autotrain] No stat cap. Set one with ")
-		ColourNote("lime", "", "autotrain cap <stat amount>")
-	end
-end
-
-function autotrain_set_cap(name, line, wc)
-	local cap = tonumber(wc[1])
-	if cap <= 0 or cap >= 400 then
-		DeleteVariable("cap")
-		ColourNote("white", "", "[Autotrain] Stat cap cleared.")
-	else
-		SetVariable("cap", cap)
-		ColourTell("white", "", "[Autotrain] Stat cap set to: ")
-		ColourNote("lime", "", cap)
+		ColourNote("lime", "", "autotrain set cap")
 	end
 end
 
