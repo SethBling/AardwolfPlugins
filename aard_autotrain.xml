@@ -11,7 +11,7 @@
    save_state="y"
    date_written="2021-06-01 11:00:00"
    requires="2.0"
-   version="1.002"
+   version="1.001"
    >
 <description trim="y">
 <![CDATA[
@@ -773,7 +773,7 @@ StatShortNames = {
     Constitution = "con",
     Luck = "luck",
 }
--- ^(.{13})\: +(\d+) +(-?\d+) +(-?\d+) +(-?\d+) +(\d+) +(\d+)(?: +(\d+))?\*?$
+
 function train_line(name, line, wc)
     train_mods = train_mods or {}
 
@@ -871,17 +871,22 @@ function potential_buy(name, line, wc)
 end
 
 function autotrain_get_cap()
-	local cap_list = get_cap_list(cap)
-	if #cap_list ~= 0 then
-		ColourTell("white", "", "[Autotrain] Stat Cap: ")
-		for stat, cap in pairs(cap_list) do
-			ColourTell("white", "", stat.." ")
-			ColourTell("lime", "", cap.." ")
-		end
-	else
-		ColourTell("white", "", "[Autotrain] No stat cap. Set one with ")
-		ColourNote("lime", "", "autotrain set cap")
-	end
+    local cap_list = get_cap_list(cap)
+    local isEmpty = true
+    for _ in pairs(cap_list) do
+        isEmpty = false
+        break
+    end
+    if not isEmpty then
+        ColourTell("white", "", "[Autotrain] Stat Cap: ")
+        for stat, cap in pairs(cap_list) do
+            ColourTell("white", "", stat.." ")
+            ColourTell("lime", "", cap.." ")
+        end
+    else
+        ColourTell("white", "", "[Autotrain] No stat cap. Set one with ")
+        ColourNote("lime", "", "autotrain set cap")
+    end
 end
 
 function autotrain_quiet()
