@@ -66,7 +66,7 @@
 	/>
 
 	<alias
-		match="autotrain set cap"
+		match="autotrain cap set"
 		enabled="y"
 		script="autotrain_set_cap"
 		sequence="100"
@@ -90,6 +90,34 @@
 		match="autotrain tierstat"
 		enabled="y"
 		script="autotrain_tierstat"
+		sequence="100"
+	/>	
+
+	<alias
+		match="autotrain profile"
+		enabled="y"
+		script="autotrain_profile"
+		sequence="100"
+	/>
+
+	<alias
+		match="autotrain profile create *"
+		enabled="y"
+		script="autotrain_profile_create"
+		sequence="100"
+	/>	
+
+	<alias
+		match="autotrain profile load *"
+		enabled="y"
+		script="autotrain_profile_load"
+		sequence="100"
+	/>	
+
+	<alias
+		match="autotrain profile delete *"
+		enabled="y"
+		script="autotrain_profile_delete"
 		sequence="100"
 	/>	
 </aliases>
@@ -174,6 +202,7 @@ Stats = {
 	con = true,
 }
 
+profiles = json.decode(GetVariable("profiles")) or {}
 priorities = GetVariable("priorities")
 cap = GetVariable("cap")
 
@@ -263,8 +292,8 @@ function help()
 		{"autotrain", "Train according to your priorities"},
 		{"autotrain noprac", "Autotrain, but don't convert practices."},
 		{"autotrain reset", "Reset the plugin's knowledge about your train modifiers/potential/class bonuses."},
-		{"autotrain set cap", "Edit your maximum stats value that will be autotrained."},
-		{"autotrain cap", "View the current autotrain cap."},
+		{"autotrain cap [set]", "View the current autotrain cap. Edit your maximum stats value that will be autotrained."},
+		{"autotrain profile [create | load | delete] <name>", "Saving your settings to a profile and managing them."},
 		{"autotrain quiet", "Toggles quiet mode for the 'autotrain' command."},
 		{"autotrain balanced", "Toggles balanced mode (each group of adjacent priorities with equal limits is treated as a balanced group)."},
         {"autotrain tierstat", "Requires tierstats to be set before autotraining."},
@@ -883,9 +912,10 @@ function autotrain_get_cap()
             ColourTell("white", "", stat.." ")
             ColourTell("lime", "", cap.." ")
         end
+		Note()
     else
         ColourTell("white", "", "[Autotrain] No stat cap. Set one with ")
-        ColourNote("lime", "", "autotrain set cap")
+        ColourNote("lime", "", "autotrain cap set")
     end
 end
 
@@ -918,6 +948,90 @@ function autotrain_tierstat()
         ColourNote("white", "", "[Autotrain] Now requiring tierstat to autotrain.")
     end
 end
+
+local profile_name = GetVariable("profile_name")
+
+function autotrain_profile()
+    if GetVariable("profiles") then
+        ColourTell("white", "", "[Autotrain] Profiles: ")
+        for name, info in pairs(profiles) do
+            ColourTell("lime", "", name.." ")
+        end
+		if GetVariable("profile_name") then
+			ColourTell("white", "", "\n[Autotrain] Current profile: ")
+			ColourTell("lime", "", profile_name)
+		else
+			ColourNote("white", "", "\nUse 'autotrain profile load <name>' to load a profile")
+		end
+		Note()
+    else
+        ColourNote("red", "", "[Autotrain] No profiles found. Use 'autotrain profile create <name>' to create one'")
+    end
+end
+
+function autotrain_profile_create(name, line, wc)
+    local new_profile_name = Trim(wc[1])
+    if new_profile_name == "" then
+        ColourNote("red", "", "[Autotrain] Profile name invalid. Try again")
+        return
+    end
+
+    profiles[new_profile_name] = {
+        priority = priorities,
+        cap = cap
+    }
+	print(profiles[new_profile_name].priority)
+	print(profiles[new_profile_name].cap)
+
+    if new_profile_name == profile_name then
+        ColourTell("white", "", '[Autotrain] Profile ')
+        ColourTell("lime", "", new_profile_name)
+        ColourTell("red", "", ' has been overwritten.')
+		Note()
+    else
+        ColourTell("white", "", "[Autotrain] Successfully created profile ")
+		ColourTell("lime", "", new_profile_name)
+		Note()
+    end
+    SetVariable("profiles", json.encode(profiles))
+	SetVariable("profile_name", new_profile_name)
+end
+
+function autotrain_profile_load(name, line, wc)
+    if profiles[wc[1]] then
+        priorities = profiles[wc[1]].priority
+        cap = profiles[wc[1]].cap
+        ColourTell("white", "", "[Autotrain] Successfully loaded ")
+        ColourTell("lime", "", wc[1])
+		Note()
+		SetVariable("profile_name", Trim(wc[1]))
+		prio_test = GetVariable("priorities")
+    else
+        ColourNote("red", "", "[Autotrain] Profile not found. Use 'autotrain profile create <name>' to create one'")
+    end
+end
+
+function autotrain_profile_delete(name, line, wc)
+    local target_profile = Trim(wc[1])
+	if wc[1] == nil then
+		ColourTell("red", "", "[Autotrain] Type 'autotrain profile delete <profile name | ALL>' to use")
+    elseif profiles[target_profile] then
+		profiles[target_profile] = nil
+		ColourTell("red", "", "[Autotrain] DELETED profile: ")
+		ColourTell("lime", "", target_profile)
+	elseif target_profile == "ALL" then
+		ColourTell("red", "", "[Autotrain] Deleting all profiles. Type 'autotrain profile delete ALL confirm' to proceed")
+	elseif target_profile == "ALL confirm" then
+		profiles = {}
+		ColourTell("red", "", "[Autotrain] Cleared profile list")
+	else
+		ColourNote("red", "", "[Autotrain] Profile not found")
+		return
+	end
+	Note()
+	SetVariable("profiles", json.encode(profiles))
+end
+
 ]]>
 </script>
 
