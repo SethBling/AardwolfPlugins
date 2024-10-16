@@ -15,6 +15,7 @@
    >
 <description trim="y">
 <![CDATA[
+All credit to Sath, I am attempting here a very minor edit to count the times each chaos portal is used.
 ]]>
 </description>
 </plugin>
@@ -50,12 +51,20 @@
 	   sequence="100"
 	/>
     <alias
-	   match="^chaosmap list(?: (nomapper)| ([a-zA-Z]+)| (\d+))?$"
-       regexp="y"
-       enabled="y"
-	   script="list_alias"
-	   sequence="100"
-	/>
+        match="^chaosmap list(?: (nomapper|counter|[a-zA-Z]+|\d+))?$"
+        regexp="y"
+        enabled="y"
+        script="list_alias"
+        sequence="100"
+    />
+    <alias
+        match="^chaosmap counter?"
+        regexp="y"
+        enabled="y"
+        script="counter_alias"
+        sequence="100"
+    />
+
     <alias
         match="^chaosmap delete (\w+)$"
         regexp="y"
@@ -313,6 +322,7 @@ local help_topics = {
         {"chaosmap gq start|end",          "Disable/re-enable non-golden chaos portals."},
 		{"chaosmap reload",                "Reloads the plugin."},
 		{"chaosmap update check|install",  "Checks/installs the most recent version."},
+		{"chaosmap counter",               "Displays usage count for all chaos portals."},
     },
 }
 
@@ -567,6 +577,11 @@ function enter_portal()
     else
         current_portal = nil
     end
+
+    if portal_id then
+        update_chaos_tracker(current_portal)
+    end    
+
 end
 
 function handle_gmcp_room_info()
@@ -645,6 +660,11 @@ function list_alias(name, line, wc)
     local search_string = wc[2] and wc[2] ~= "" and string.lower(wc[2])
     local number = wc[3]
 
+    local counter = false
+    if wc[1] == "counter" then 
+        counter = true
+    end
+
     local chaos_portals_sorted = {}
     for id, info in pairs(chaos_portals) do
         table.insert(chaos_portals_sorted, {
@@ -657,36 +677,62 @@ function list_alias(name, line, wc)
     end)
     
     ColourNote("white", "", "[ChaosMap] Tracked chaos portals: (*=golden)")
-    
+
     if #chaos_portals_sorted == 0 then
         ColourNote("silver", "", "  No chaos portals being tracked.")
     else
-        ColourNote("white", "", string.format(
-            " %3s  %14s   %11s  %-5.5s %-20.20s %s",
-            "", "ID", "Item ID", "Dest", "Room Name", "Mapper?"
-        ))
-        local i = 1
-        for _, item in ipairs(chaos_portals_sorted) do
-            local color = "silver"
-            local golden_marker = ""
-            if item.data.golden then
-                color = "yellow"
-                golden_marker = "*"
-            end
-            
-            local mapper_dest = ""
-            for _, mapper_data in ipairs(db_portals) do
-                if string.find(mapper_data.cmd, item.id, 1, true) or GetVariable("matchbylanding") ~= "false" and mapper_data.dest == item.data.dest then
-                    if mapper_data.dest == (item.data.dest or "-1") then
-                        mapper_dest = "Mapped!"
-                    elseif string.len(mapper_data.dest) > 5 then
-                        mapper_dest = "Mapped to nomap"
-                    else
-                        mapper_dest = "Mapped to #" .. mapper_data.dest
-                    end
+        if counter == true then
+            -- Header when counter is true
+            ColourNote("white", "", string.format(
+                " %3s  %14s   %11s  %-5.5s  %-10.10s  %-10.10s",
+                "", "ID", "Item ID", "Dest", "Used", "First Seen"
+            ))
+        else
+            -- Original header
+            ColourNote("white", "", string.format(
+                " %3s  %14s   %11s  %-5.5s %-20.20s %s",
+                "", "ID", "Item ID", "Dest", "Room Name", "Mapper?"
+            ))
+        end
+    local i = 1
+    for _, item in ipairs(chaos_portals_sorted) do
+        local color = "silver"
+        local golden_marker = ""
+        if item.data.golden then
+            color = "yellow"
+            golden_marker = "*"
+        end
+        
+        local mapper_dest = ""
+        for _, mapper_data in ipairs(db_portals) do
+            if string.find(mapper_data.cmd, item.id, 1, true) or GetVariable("matchbylanding") ~= "false" and mapper_data.dest == item.data.dest then
+                if mapper_data.dest == (item.data.dest or "-1") then
+                    mapper_dest = "Mapped!"
+                elseif string.len(mapper_data.dest) > 5 then
+                    mapper_dest = "Mapped to nomap"
+                else
+                    mapper_dest = "Mapped to #" .. mapper_data.dest
                 end
             end
-            
+        end
+------------------------- Counter Work ---------------------------            
+            if counter == true then
+                db=open_counter_db()
+                local query = string.format("SELECT used, first_seen FROM chaos_tracker WHERE id = '%s'", item.id)
+                local used = 0
+                local first_seen = "N/A"
+                for row in db:nrows(query) do
+                    used = row.used or 0
+                    first_seen = row.first_seen or "N/A"
+                end
+
+                item.data.used = used
+                item.data.first_seen = first_seen
+
+                close_counter_db(db)
+            end
+ ---------------------------------------------------------------              
+
             local disp = true
             
             if nomapper and mapper_dest ~= "" then
@@ -701,22 +747,42 @@ function list_alias(name, line, wc)
                 disp = false
             end
             
-            if disp then
+        if disp then
+            if counter == true then
+                -- Display logic when list argument == "counter"
+                if item.data.ownedby then
+                    ColourNote("orange", "", string.format(
+                        " %3d. %14s%1s: %11s #%-5.5s  %-10.10s  %-10.10s",
+                        i, item.data.id or "", golden_marker or "", item.id or "", item.data.dest or "", 
+                        tostring(item.data.used or 0), item.data.first_seen or "N/A"
+                    ))
+                else
+                    ColourNote(color, "", string.format(
+                        " %3d. %14s%1s: %11s #%-5.5s  %-10.10s  %-10.10s",
+                        i, item.data.id or "", golden_marker, item.id or "", item.data.dest or "", 
+                        tostring(item.data.used or 0), item.data.first_seen or "N/A"
+                    ))
+                end
+            else
+                -- Original display logic without 'used' and 'first_seen'
                 if item.data.ownedby then
                     ColourNote("orange", "", string.format(
                         " %3d. %14s%1s: %11s #%-5.5s %-20.20s %s",
-                        i, item.data.id or "", golden_marker or "", item.id, item.data.dest or "", "Owned by: " .. item.data.ownedby, mapper_dest
+                        i, item.data.id or "", golden_marker or "", item.id or "", item.data.dest or "", 
+                        "Owned by: " .. item.data.ownedby, mapper_dest
                     ))
                 else
                     ColourNote(color, "", string.format(
                         " %3d. %14s%1s: %11s #%-5.5s %-20.20s %s",
-                        i, item.data.id, golden_marker, item.id, item.data.dest, item.data.dest_name, mapper_dest
+                        i, item.data.id or "", golden_marker, item.id or "", item.data.dest or "", 
+                        item.data.dest_name or "", mapper_dest
                     ))
                 end
-                i = i + 1
             end
+            i = i + 1
         end
     end
+end
     
     local untracked_count = 0
     local untracked_golden_count = 0
@@ -1061,6 +1127,64 @@ function enable_id(id, dest, enable)
     
     return count
 end
+
+
+------------------------Chaos Counter Code ------------------------
+
+function open_counter_db()
+    local db = assert(sqlite3.open(GetInfo(66) .. "chaos_tracker.db"))
+
+    local create_table_query = [[
+        CREATE TABLE IF NOT EXISTS chaos_tracker (
+            id INTEGER PRIMARY KEY,
+            used INTEGER DEFAULT 0,
+            first_seen TEXT
+        );
+    ]]
+
+    db:exec(create_table_query)
+
+    return db
+end
+
+function close_counter_db(db)
+    db:close()
+end
+
+function update_chaos_tracker(current_portal)
+    db=open_counter_db()
+    local portal_id = current_portal.id
+    local query_check = string.format("SELECT used FROM chaos_tracker WHERE id = '%s'", portal_id)
+    local found = false
+    local used_count = 0
+
+    for row in db:nrows(query_check) do
+        used_count = tonumber(row.used) or 0
+        found = true
+    end
+
+    if found then
+        print(used_count)
+        local new_used_count = used_count + 1
+        local query_update = string.format("UPDATE chaos_tracker SET used = %d WHERE id = '%s'", new_used_count, portal_id)
+        db:exec(query_update)
+    else
+        -- If not found, insert a new row with first_seen, used = 1, and na = nil (or a default value)
+        local first_seen = os.date("%Y-%m-%d")
+        used_count=1
+        local query_insert = string.format("INSERT INTO chaos_tracker (id, used, first_seen) VALUES ('%s', '%s', '%s')", portal_id, used_count, first_seen)
+        db:exec(query_insert)
+    end
+
+    close_counter_db(db)
+
+end
+
+function counter_alias()
+    list_alias(nil, nil, {"counter"})
+end
+
+
 
 ----------------------- Plugin Update Code -----------------------
 -- Code taken from Durel's dinv plugin, originally via Crowley
