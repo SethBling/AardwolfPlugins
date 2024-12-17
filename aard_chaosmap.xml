@@ -11,7 +11,7 @@
    save_state="y"
    date_written="2023-04-17 11:00:00"
    requires="2.0"
-   version="1.016"
+   version="1.019"
    >
 <description trim="y">
 <![CDATA[
@@ -50,7 +50,7 @@
 	   sequence="100"
 	/>
     <alias
-	   match="^chaosmap list(?: (nomapper)| ([a-zA-Z]+)| (\d+))?$"
+	   match="^chaosmap list(?: (nomapper))?(?: (mostused))?(?: ([a-zA-Z]+)| (\d+))?$"
        regexp="y"
        enabled="y"
 	   script="list_alias"
@@ -189,6 +189,13 @@
         script="invmon_item"
     />
     <trigger
+        enabled="y"
+        match="^{invitem}\d+,[A-Z]*,[^,]*,-?\d+,-?\d+,-?\d+,-?\d+,-?\d+$"
+        regexp="y"
+        omit_from_output="y"
+        sequence="100"
+    />
+    <trigger
         name="invmon_failed"
         enabled="n"
         match="*"
@@ -282,6 +289,7 @@
 
 <script>
 <![CDATA[
+
 require("wait")
 require("async")
 json = require("json")
@@ -298,7 +306,7 @@ local help_topics = {
         {"chaosmap next",                  "Use an untracked chaos portal to start tracking it."},
         {"chaosmap all",                   "Use all untracked chaos portals until you get aggroed."},
         {"chaosmap cancel",                "Cancel 'chaosmap all'."},
-        {"chaosmap list [nomapper|<search term>]",       "List all tracked chaos portals."},
+        {"chaosmap list [nomapper] [mostused] [<search term>]",       "List all tracked chaos portals."},
         {"chaosmap delete <id>",           "Delete a chaos portal from your tracking database."},
         {"chaosmap deleteall [confirm]",   "Delete your entire chaos portal tracking database."},
         {"chaosmap db",                    "Reload mapper portals from the mapper database."},
@@ -575,7 +583,7 @@ function handle_gmcp_room_info()
         return
     end
 
-    if not chaos_portals[portal.id] then
+    if not chaos_portals[portal.id] or chaos_portals[portal.id].ownedby then
         local golden = false
         if portal.name == "a golden chaos portal" then
             golden = true
@@ -589,6 +597,7 @@ function handle_gmcp_room_info()
             dest_name = room.name,
             dest_zone = room.zone,
             golden = golden,
+            uses = 1,
         }
         
         SetVariable("chaos_portals", json.encode(chaos_portals))
@@ -605,6 +614,9 @@ function handle_gmcp_room_info()
         end
         ColourTell("white", "", ")")
         Note()
+    elseif chaos_portals[portal.id] then
+        chaos_portals[portal.id].uses = (chaos_portals[portal.id].uses or 0) + 1
+        SetVariable("chaos_portals", json.encode(chaos_portals))
     end
     
     if do_all then
@@ -635,8 +647,9 @@ end
 
 function list_alias(name, line, wc)
     local nomapper = wc[1] == "nomapper"
-    local search_string = wc[2] and wc[2] ~= "" and string.lower(wc[2])
-    local number = wc[3]
+    local mostused = wc[2] == "mostused"
+    local search_string = wc[3] and wc[3] ~= "" and string.lower(wc[3])
+    local number = wc[4]
 
     local chaos_portals_sorted = {}
     for id, info in pairs(chaos_portals) do
@@ -645,9 +658,19 @@ function list_alias(name, line, wc)
             data = info,
         })
     end
-    table.sort(chaos_portals_sorted, function (a, b)
-        return (a.data.id or "") < (b.data.id or "")
-    end)
+    table.sort(chaos_portals_sorted,
+        function (a, b)
+            return (a.data.id or "") < (b.data.id or "")
+        end
+    )
+
+    if mostused then
+        table.sort(chaos_portals_sorted,
+            function (a, b)
+                return (a.data.uses or 0) < (b.data.uses or 0)
+            end
+        )
+    end
     
     ColourNote("white", "", "[ChaosMap] Tracked chaos portals: (*=golden)")
     
@@ -655,8 +678,8 @@ function list_alias(name, line, wc)
         ColourNote("silver", "", "  No chaos portals being tracked.")
     else
         ColourNote("white", "", string.format(
-            " %3s  %14s   %11s  %-5.5s %-20.20s %s",
-            "", "ID", "Item ID", "Dest", "Room Name", "Mapper?"
+            " %3s  %14s   %11s  %-5.5s %-20.20s %6s %s",
+            "", "ID", "Item ID", "Dest", "Room Name", "Uses", "Mapper?"
         ))
         local i = 1
         for _, item in ipairs(chaos_portals_sorted) do
@@ -693,6 +716,8 @@ function list_alias(name, line, wc)
             if number and number ~= "" and item.id ~= number and item.data.dest ~= number then
                 disp = false
             end
+
+            local uses_str = add_commas(item.data.uses or "-")
             
             if disp then
                 if item.data.ownedby then
@@ -702,8 +727,8 @@ function list_alias(name, line, wc)
                     ))
                 else
                     ColourNote(color, "", string.format(
-                        " %3d. %14s%1s: %11s #%-5.5s %-20.20s %s",
-                        i, item.data.id, golden_marker, item.id, item.data.dest, item.data.dest_name, mapper_dest
+                        " %3d. %14s%1s: %11s #%-5.5s %-20.20s %6.6s %s",
+                        i, item.data.id, golden_marker, item.id, item.data.dest, item.data.dest_name, uses_str, mapper_dest
                     ))
                 end
                 i = i + 1
@@ -1042,7 +1067,7 @@ function enable_id(id, dest, enable)
                 backup_lock[db_portal.cmd] = (db_portal.lock or 0)
                 
                 count = count + 1
-            elseif enable and temp and temp ~= backup then
+            elseif enable and backup and (temp and temp ~= backup or not temp and db_portal.lock and db_portal.lock ~= backup) then
                 Execute(";mapper fullcexit {" .. db_portal.cmd .. "} * " .. db_portal.dest .. " " .. backup)
                 
                 temp_lock[db_portal.cmd] = nil
@@ -1053,6 +1078,18 @@ function enable_id(id, dest, enable)
     end
     
     return count
+end
+
+function add_commas(number_str)
+    local formatted = number_str
+    while true do
+        local k
+        formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
+        if k == 0 then
+            break
+        end
+    end
+    return formatted
 end
 
 ----------------------- Plugin Update Code -----------------------
@@ -1148,6 +1185,12 @@ function get_plugin_file()
     end
 end
 ----------------------- End Plugin Update Code -----------------------
+
+
+
+
+
+
 ]]>
 </script>
 
