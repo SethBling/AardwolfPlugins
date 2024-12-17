@@ -117,113 +117,13 @@
 		script="combine"
 		group="death"
 	/>
-	
+
 	<trigger
 		enabled="n"
 		name="death_exp"
-		match="You receive * experience point*."
-		omit_from_output="y"
-		sequence="101"
-		script="combine"
-		group="death"
-	/>
-	
-	<trigger
-		enabled="n"
-		name="death_exp_rare"
-		match="You receive * 'rare kill' experience bonus."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="death"
-	/>
-	
-	<trigger
-		enabled="n"
-		name="death_exp_dbdouble_bonus"
-		match="You receive * bonus experience point* courtesy of *."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="death"
-	/>
-	
-    <trigger
-		enabled="n"
-		name="death_exp_birthday_bonus1"
-		match="You receive * bonus experience point* to celebrate * years of Aardwolf!"
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="death"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="death_exp_birthday_bonus2"
-		match="You receive * bonus experience point* to celebrate * awesome years of AardWolf!"
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="death"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="death_exp_birthday_bonus3"
-		match="You receive * bonus experience point* to celebrate Aardwolf's * birthday!"
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="death"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="death_exp_christmas_bonus"
-		match="You receive * bonus experience points to celebrate whatever it is you celebrate today! :)"
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="death"
-	/>
-    
-	<trigger
-		enabled="n"
-		name="death_exp_superhero_bonus"
-		match="You receive * bonus experience point* in honor of * reaching superhero."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="death"
-	/>
-	
-	<trigger
-		enabled="n"
-		name="death_exp_daily_bonus"
-		match="You receive * bonus experience point* from your daily blessing."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="death"
-	/>
-	
-	<trigger
-		enabled="n"
-		name="death_daily_exp_remaining"
-		match="^You have (\d+) daily blessing bonus experience kills? remaining.$"
+		match="^You(?: (don't))? receive ([\d\+]+)(?: 'rare kill')?(?: bonus)? experience (?:points?|bonus)(?: courtesy of .*| to celebrate .*| to rejoice in the death of another million mobs| in honor of .*| from your daily blessing)?[\.!](?: \:\))?$"
 		regexp="y"
 		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="death"
-	/>
-	
-	<trigger
-		enabled="n"
-		name="death_noexp"
-		match="You don't receive * experience point*."
-		omit_from_output="y"
 		sequence="101"
 		script="combine"
 		group="death"
@@ -231,89 +131,19 @@
 	
 	<trigger
 		enabled="n"
-		name="death_noexp_rare"
-		match="You don't receive * 'rare kill' experience bonus."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="death"
-	/>
-	
-	<trigger
-		enabled="n"
-		name="death_noexp_bonus"
-		match="You don't receive * bonus experience point* courtesy of *."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="death"
-	/>
-	
-	<trigger
-		enabled="n"
-		name="death_noexp_superhero"
-		match="You don't receive * bonus experience point* in honor of * reaching superhero."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="death"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="death_noexp_birthday_bonus1"
-		match="You don't receive * bonus experience point* to celebrate * years of Aardwolf!"
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="death"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="death_noexp_birthday_bonus2"
-		match="You don't receive * bonus experience point* to celebrate * awesome years of AardWolf!"
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="death"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="death_noexp_birthday_bonus3"
-		match="You don't receive * bonus experience point* to celebrate Aardwolf's * birthday!"
+		name="death_is_noexp"
+		match="You have set your character to receive no experience point*!"
 		omit_from_output="y"
 		sequence="100"
 		script="combine"
 		group="death"
 	/>
 
-    <trigger
-		enabled="n"
-		name="death_noexp_christmas_bonus"
-		match="You don't receive * bonus experience points to celebrate whatever it is you celebrate today! :)"
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="death"
-	/>
-	
 	<trigger
 		enabled="n"
-		name="death_noexp_daily"
-		match="You don't receive * bonus experience point* from your daily blessing."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="death"
-	/>
-	
-	
-	<trigger
-		enabled="n"
-		name="death_is_noexp"
-		match="You have set your character to receive no experience point*!"
+		name="death_daily_exp_remaining"
+		match="^(?:Daily bonus exp not used\. )?You have (\d+|no) (?:daily blessing )?bonus experience kills? remaining\.$"
+		regexp="y"
 		omit_from_output="y"
 		sequence="100"
 		script="combine"
@@ -347,7 +177,7 @@
 		omit_from_output="y"
 		sequence="100"
 		script="combine"
-		group="death"
+		group="death_conditional"
 	/>
 	
 	<trigger
@@ -383,24 +213,37 @@
 	
 	<trigger
 		enabled="n"
-		name="death_vampire1"
-		match="You bury your fangs deep into *, drinking thirstily."
+		name="death_vampire"
+		match="^You bury your fangs deep into .*, drinking thirstily\.$|^Ahhhh, that feels better!$"
+		regexp="y"
 		omit_from_output="y"
 		sequence="100"
 		script="combine"
 		group="death"
 	/>
-	
+
 	<trigger
 		enabled="n"
-		name="death_vampire2"
-		match="Ahhhh, that feels better!"
+		name="death_sacrifice"
+		match="^(.*) gives you (\d+) gold coins? for (.*)\.$"
+		regexp="y"
 		omit_from_output="y"
 		sequence="100"
 		script="combine"
 		group="death"
 	/>
-	
+
+	<trigger
+		enabled="n"
+		name="death_sacrifice_none"
+		match="^(.*) is not impressed with (.*)\.$"
+		regexp="y"
+		omit_from_output="y"
+		sequence="100"
+		script="combine"
+		group="death"
+	/>
+
 	<trigger
 		enabled="n"
 		name="death_other_split"
@@ -423,16 +266,6 @@
 	
 	<trigger
 		enabled="n"
-		name="death_sacrifice"
-		match="* gives you * gold coins for *."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="death_unused"
-	/>
-	
-	<trigger
-		enabled="n"
 		name="death_gold"
 		match="You get * gold coins from *."
 		omit_from_output="y"
@@ -448,7 +281,7 @@
 		omit_from_output="y"
 		sequence="100"
 		script="combine"
-		group="death"
+		group="death_conditional"
 	/>
 	
 	<trigger
@@ -459,7 +292,7 @@
 		omit_from_output="y"
 		sequence="100"
 		script="combine"
-		group="death"
+		group="death_conditional"
 	/>
 	
 	<trigger
@@ -552,101 +385,12 @@
 		script="ignore"
 		group="equip"
 	/>
-    
-    <trigger
-		enabled="n"
-		name="equip_as"
-		match="You equip * as a *."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="equip"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="equip_pin"
-		match="You proudly pin * to your chest."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="equip"
-	/>
 
-    <trigger
+	<trigger
 		enabled="n"
-		name="equip_on"
-		match="You wear * on your *."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="equip"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="equip_around"
-		match="You wear * around your *."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="equip"
-	/>
-
-    <trigger
-		enabled="n"
-		name="equip_secondary"
-		match="You wield * in your off-hand."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="equip"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="equip_wielded"
-		match="You wield *."
-		omit_from_output="y"
-		sequence="101"
-		script="combine"
-		group="equip"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="equip_aura"
-		match="* begins floating above you."
-		omit_from_output="y"
-		sequence="101"
-		script="combine"
-		group="equip"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="equip_float"
-		match="* begins floating around you."
-		omit_from_output="y"
-		sequence="101"
-		script="combine"
-		group="equip"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="equip_light"
-		match="You light * and hold it."
-		omit_from_output="y"
-		sequence="101"
-		script="combine"
-		group="equip"
-	/>
-       
-    <trigger
-		enabled="n"
-		name="remove_as"
-		match="You stop using * as a *."
+		name="equip"
+		match="^You (?:equip|wear) (?&lt;equip2_item&gt;.+) (?:as a|on your|around your) (?&lt;equip2_slot&gt;.+)\.$|^You proudly pin (?&lt;equip_pin_item&gt;.+) to your chest\.$|^You wield (?&lt;equip_secondary_item&gt;.+) in your off\-hand\.$|^You wield (?&lt;equip_wielded_item&gt;.+)\.$|^(?&lt;equip_aura_item&gt;.+) begins floating above you\.$|^(?&lt;equip_float_item&gt;.+) begins floating around you\.$|^You light (?&lt;equip_light_item&gt;.+) and hold it\.$"
+		regexp="y"
 		omit_from_output="y"
 		sequence="100"
 		script="combine"
@@ -663,84 +407,15 @@
 
     <trigger
 		enabled="n"
-		name="remove_from"
-		match="You remove * from your *."
+		name="remove"
+		match="^You (?:stop using|remove) (?&lt;remove2_item&gt;.+) (?:as a|from your|from around your) (?&lt;remove2_slot&gt;.+)\.$|^You stop wielding (?&lt;remove_wielded_item&gt;.+) in your primary hand\.$|^You stop wielding (?&lt;remove_secondary_item&gt;.+) in your off\-hand\.$|^(?&lt;remove_float_item&gt;.+) stops floating around you\.$|^(?&lt;remove_aura_item&gt;.+) stops floating above you\.$|^You remove your (?&lt;remove_sleeping_item&gt;.+)\.$|^You remove (?&lt;remove_light_item&gt;.+), making the room a little darker\.$"
+		regexp="y"
 		omit_from_output="y"
 		sequence="100"
 		script="combine"
 		group="equip"
 	/>
-    
-    <trigger
-		enabled="n"
-		name="remove_around"
-		match="You remove * from around your *."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="equip"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="remove_wielded"
-		match="You stop wielding * in your primary hand."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="equip"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="remove_secondary"
-		match="You stop wielding * in your off-hand."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="equip"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="remove_float"
-		match="* stops floating around you."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="equip"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="remove_aura"
-		match="* stops floating above you."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="equip"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="remove_sleeping"
-		match="You remove your *."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="equip"
-	/>
-    
-    <trigger
-		enabled="n"
-		name="remove_light"
-		match="You remove *, making the room a little darker."
-		omit_from_output="y"
-		sequence="100"
-		script="combine"
-		group="equip"
-	/>
-	
+
 	<trigger
 		enabled="n"
 		name="spellup"
@@ -813,7 +488,7 @@
 	<trigger
 		enabled="n"
 		name="combat_preserve_multiple"
-		match="^You block .* way as .* attempts? to flee\.$|^.* restores? life to .*self\.$|^You are shocked by .*\.$|^.* drains? life from .*\.$|^.* (try|tries) to disarm .*, but fails?\.$|^.* fails? to stun .* and .* in an attack\!$|^.* fails? to blind .*\.$|^.* fails to hex .*\!$|^.* slime tears at .* soul\!$|^.* begins to spin around\, flailing wildly\.$|^.* hurls? a barrage of searing white blades at .*\!$|^A black field of death emanates from .*\.$|^.* slams .* head sideways into .*\. OUCH\! That smarts\!$|^.* jams .* fingers into .* eyes, causing .* searing pain\.$|^.* chokes as .* breathes in the poison\.$|^.* sweeps your legs from under you\!$|^A deep aura of dread settles around .*\.$|^.* catches .* completely off-guard and inflicts massive damage on .*\.$|^.* gets? a raged look in .* eyes\.$|^.* fails? to interfere with .* healing\.$|^.* screams? wildly and attacks? .*\.$|^.* with a series of hammering blows\!$|^.* black root smashes into you and you lose control of your senses\.$|^.* shoots? .* beam from .* hand straight towards .*\!$|^.* is poisoned by the venom on .*\.$|^.* raises .* and starts yelling KAI\-HA\!$|^.* yells KAI\-HA and then strikes .* torso\.$|^.* is frozen by .*\.$|^.* is burned by .*\.$|^.* eyes are seared by .*\.$|^.* spirit shield reflects .* back at .*\!$|^.* turns blue and shivers\.$|^.* gets a wild look in .* eyes\.$|^.* calls down rains of fire\!$|^.* screams? wildly and (try|tries) to cleave .* in half\!$|^A green mist emanates from .*\. The mist surrounds you\.$|^A green mist emanates from .* towards .*\.$|^.* a chilling cloud of ice\.$|^.* chants the phrase \'.*\'\.$|^.* bites .* on .* neck\.$|^.* hurls .* at .*, slamming into .* like a tank\.$|^\* breathes forth a huge blast of fire\.$|^.* calls the justice of .* to strike .* foes\!$|^.* fails to weaken .*\.$|^.* sprays .* with .*Kobold glands\.$|^.* failed to kick dirt into .* eyes\!$|^You feel a brief tingling sensation\.$|^.* sprays .* with acidic raven venom\.$|^.* touches .* with venomous hydra\'s blood\.$|^You feel momentarily ill\, but it passes\.$|^.* unleashes a blast of atomic energy on the room\.$|^.* smacks? .* with a solid uppercut\!$|^.* sends? .* sprawling with a powerful bash\!$|^.* conjures? a storm of freezing snow and sleet\.$|^.* tries to jump into the air\, realizes .* is already flying\, and kicks .* in the face instead\!$|^.* touch of nature heals .* wounds\.$|^You create a time shift and calmly step away from .* attack\.$|^You dodge .* attack\.$|^You are unaffected by .* dispel .*\.$|^You get lucky and manage to escape .* attack\.$|^You counter\-strike .* attack\!$|^You parry .* attack\.$|^You instinctively dodge .* attack\.$|^.* holy rift protects you from .* attack\.$|^You glow with energy as you absorb .*\.$|^You blink out of existence and avoid .* attack\.$|^You sense divine intervention as .* attack narrowly misses you\.$|^You misdirect .* attack\.$|^You blend perfectly with your surroundings and avoid .* attack\.$|^.* dodges? your attack\.$|^.* counter\-strikes your attack\!$|^.* parries your attack\.$|^.* misdirects your attack\.$|^.* holy rift protects .* from your attack\.$|^.* avoids your attack\, almost too easily\.$|^.* blocks your attack with .* shield\.$|^.* blends in perfectly causing .* to hit nothing but air\.$|^.* blinks out of existence avoiding your attack\.$|^.* fiddles with time and your attack is just a few seconds slow\.$|^.* shimmers momentarily\.$|^.* is shocked by .*\.$|^You are frozen by .*\.$|^.* muscles stop responding\.$|^You feel your blood being drained\!$|^Suddenly\, after performing an incantation\, .* disappears\.$|^.* tries to slow .* down but fails\.$|^.* reappears behind .* and stabs .* in the back\!$|^.* circles around .* and stabs .* in the back\!$|^.* forms a deadly cloud of poison\.$|^You feel a little run down\, but it passes\.$|^You feel .* drawing your life away\.$|^You feel a momentary chill on your neck\.$|^Your power grip is too strong for .*\.$|^Your head throbs as your reality is torn apart\!$|^.* uses the power of the cobra against .*\.$|^.* poison tears at .* skin\, .* eyes stream in agony\.$|^.* hammers? you with a series of blows!$|^(.*?) breathes forth a huge blast of fire\.$|^Unseen forces protect you from (.*?) tangling web\.$"
+		match="^You block .* way as .* attempts? to flee\.$|^.* restores? life to .*self\.$|^You are shocked by .*\.$|^.* drains? life from .*\.$|^.* (try|tries) to disarm .*, but fails?\.$|^.* fails? to stun .* and .* in an attack\!$|^.* fails? to blind .*\.$|^.* fails to hex .*\!$|^.* slime tears at .* soul\!$|^.* begins to spin around\, flailing wildly\.$|^.* hurls? a barrage of searing white blades at .*\!$|^A black field of death emanates from .*\.$|^.* slams .* head sideways into .*\. OUCH\! That smarts\!$|^.* jams .* fingers into .* eyes, causing .* searing pain\.$|^.* chokes as .* breathes in the poison\.$|^.* sweeps your legs from under you\!$|^A deep aura of dread settles around .*\.$|^.* catches .* completely off-guard and inflicts massive damage on .*\.$|^.* gets? a raged look in .* eyes\.$|^.* fails? to interfere with .* healing\.$|^.* screams? wildly and attacks? .*\.$|^.* with a series of hammering blows\!$|^.* black root smashes into you and you lose control of your senses\.$|^.* shoots? .* beam from .* hand straight towards .*\!$|^.* is poisoned by the venom on .*\.$|^.* raises .* and starts yelling KAI\-HA\!$|^.* yells KAI\-HA and then strikes .* torso\.$|^.* is frozen by .*\.$|^.* is burned by .*\.$|^.* eyes are seared by .*\.$|^.* spirit shield reflects .* back at .*\!$|^.* turns blue and shivers\.$|^.* gets a wild look in .* eyes\.$|^.* calls down rains of fire\!$|^.* screams? wildly and (try|tries) to cleave .* in half\!$|^A green mist emanates from .*\. The mist surrounds you\.$|^A green mist emanates from .* towards .*\.$|^.* a chilling cloud of ice\.$|^.* chants the phrase \'.*\'\.$|^.* bites .* on .* neck\.$|^.* hurls .* at .*, slamming into .* like a tank\.$|^\* breathes forth a huge blast of fire\.$|^.* calls the justice of .* to strike .* foes\!$|^.* fails to weaken .*\.$|^.* sprays .* with .*Kobold glands\.$|^.* failed to kick dirt into .* eyes\!$|^You feel a brief tingling sensation\.$|^.* sprays .* with acidic raven venom\.$|^.* touches .* with venomous hydra\'s blood\.$|^You feel momentarily ill\, but it passes\.$|^.* unleashes a blast of atomic energy on the room\.$|^.* smacks? .* with a solid uppercut\!$|^.* sends? .* sprawling with a powerful bash\!$|^.* conjures? a storm of freezing snow and sleet\.$|^.* tries to jump into the air\, realizes .* is already flying\, and kicks .* in the face instead\!$|^.* touch of nature heals .* wounds\.$|^You create a time shift and calmly step away from .* attack\.$|^You dodge .* attack\.$|^You are unaffected by .* dispel .*\.$|^You get lucky and manage to escape .* attack\.$|^You counter\-strike .* attack\!$|^You parry .* attack\.$|^You instinctively dodge .* attack\.$|^.* holy rift protects you from .* attack\.$|^You glow with energy as you absorb .*\.$|^You blink out of existence and avoid .* attack\.$|^You sense divine intervention as .* attack narrowly misses you\.$|^You misdirect .* attack\.$|^You blend perfectly with your surroundings and avoid .* attack\.$|^.* dodges? your attack\.$|^.* counter\-strikes your attack\!$|^.* parries your attack\.$|^.* misdirects your attack\.$|^.* holy rift protects .* from your attack\.$|^.* avoids your attack\, almost too easily\.$|^.* blocks your attack with .* shield\.$|^.* blends in perfectly causing .* to hit nothing but air\.$|^.* blinks out of existence avoiding your attack\.$|^.* fiddles with time and your attack is just a few seconds slow\.$|^.* shimmers momentarily\.$|^.* is shocked by .*\.$|^You are frozen by .*\.$|^.* muscles stop responding\.$|^You feel your blood being drained\!$|^Suddenly\, after performing an incantation\, .* disappears\.$|^.* tries to slow .* down but fails\.$|^.* reappears behind .* and stabs .* in the back\!$|^.* circles around .* and stabs .* in the back\!$|^.* forms a deadly cloud of poison\.$|^You feel a little run down\, but it passes\.$|^You feel .* drawing your life away\.$|^You feel a momentary chill on your neck\.$|^Your power grip is too strong for .*\.$|^Your head throbs as your reality is torn apart\!$|^.* uses the power of the cobra against .*\.$|^.* poison tears at .* skin\, .* eyes stream in agony\.$|^.* hammers? you with a series of blows!$|^(.*?) breathes forth a huge blast of fire\.$|^Unseen forces protect you from (.*?) tangling web\.$|^You slash at .* ferociously with your razor\-sharp claws\!$|^You lunge forward gnashing at .* viciously\.$|^You spitefully bite (.*?) as if (.*?) tried to pet you more than three times\.$"
         regexp="y"
 		omit_from_output="y"
 		sequence="100"
@@ -831,6 +506,9 @@
 
 <script>
 <![CDATA[
+
+
+
 require("gmcphelper")
 json = require("json")
 
@@ -1136,8 +814,8 @@ function combine(name, line, wc, sr)
 		local data = options[group].data
 	
 		if group == "death" then
-			if starts_with(name, "death_exp") or starts_with(name, "death_noexp") then
-				if starts_with(name, "death_noexp") then
+			if name == "death_exp" then
+				if wc[1] == "don't" then
 					data.noexp = true
 				end
 				
@@ -1145,7 +823,7 @@ function combine(name, line, wc, sr)
 					data.exp = {}
 				end
 
-                local exp_sr = get_wildcard_sr(line, wc, sr, 1)
+                local exp_sr = get_wildcard_sr(line, wc, sr, 2)
 				for _,run in ipairs(exp_sr) do
                     local pieces = split(run.text, "+")
                     for _,amt in ipairs(pieces) do
@@ -1238,7 +916,7 @@ function combine(name, line, wc, sr)
 				data.gq_qp = (data.gq_qp or 0) + 3
 			elseif name == "death_quest" then
 				data.quest = true
-			elseif name == "death_vampire1" or name == "death_vampire2" then
+			elseif name == "death_vampire" then
 				data.vampire = true
 			elseif name == "death_sacrifice" then
 				local gold = wc[2]
@@ -1257,6 +935,23 @@ function combine(name, line, wc, sr)
 					gold = gold,
 					item = sr
 				})
+			elseif name == "death_sacrifice_none" then
+				if sr[1] then
+					-- Find " is not impressed with " and it and all text before it from sr[1]
+					local findstr = " is not impressed with "
+					local pos = string.find(sr[1].text, findstr)
+					if pos then
+						sr[1].text = string.sub(sr[1].text, pos + #findstr)
+					end
+				end
+
+				if not data.sac then
+					data.sac = {}
+				end
+
+				table.insert(data.sac, {
+					item = sr
+				})
 			end
 			
 			if data.exp or data.gold or data.pointless or data.loot_items then
@@ -1264,18 +959,60 @@ function combine(name, line, wc, sr)
 				local needs_comma = false
 				
 				if data.exp then
-					local total = 0
+					local total = data.exp[1].amt
 					local needs_plus = false
-					for i,piece in ipairs(data.exp) do
-						if needs_plus then
-							if data.noexp then
-								ColourTell("gray", "", "+")
+					local base_exp = data.exp[1].amt
+					local racial_bonus = 0
+
+					if gmcp("char.base.race") == "Tigran" then
+						local bonus
+						if data.other_exp then
+							bonus = 0.88
+						else
+							bonus = 1.12
+						end
+
+						base_exp = math.floor(data.exp[1].amt / bonus)
+						racial_bonus = data.exp[1].amt - base_exp
+					end
+
+					if data.noexp then
+						NoteStyle(2)
+						ColourTell("gray", "", base_exp)
+						NoteStyle(0)
+					else
+						ColourTell("lime", "", base_exp)
+					end
+
+					if racial_bonus > 0 then
+						if data.noexp then
+							NoteStyle(2)
+							ColourTell("gray", "", "+")
+							if GetVariable("bonusexp_pct") == "true" then
+								ColourTell("gray", "", math.floor(100 * racial_bonus / base_exp) .. "%")
+							else
+								ColourTell("gray", "", racial_bonus)
+							end
+							NoteStyle(0)
+						else
+							if GetVariable("bonusexp_pct") == "true" then
+								ColourTell("green", "", "+")
+								ColourTell("#80FF80", "", math.floor(100 * racial_bonus / base_exp) .. "%")
 							else
 								ColourTell("green", "", "+")
+								ColourTell("#80FF80", "", racial_bonus)
 							end
-							
 						end
-						
+					end
+
+					for i = 2,#data.exp do
+						local piece = data.exp[i]
+						if data.noexp then
+							ColourTell("gray", "", "+")
+						else
+							ColourTell("green", "", "+")
+						end
+							
 						if data.noexp then
 							ColourTell("gray", "", piece.amt)
 						else
@@ -1285,7 +1022,7 @@ function combine(name, line, wc, sr)
 								NoteStyle(0)
 							else
 								if i > 1 and GetVariable("bonusexp_pct") == "true" then
-									ColourTell(piece.color, "", math.floor(100 * piece.amt / data.exp[1].amt) .. "%")
+									ColourTell(piece.color, "", math.floor(100 * piece.amt / base_exp) .. "%")
 								else
 									ColourTell(piece.color, "", piece.amt)
 								end
@@ -1293,11 +1030,9 @@ function combine(name, line, wc, sr)
 						end
 						
 						total = total + piece.amt
-						
-						needs_plus = true
 					end
 					
-					if #data.exp > 1 then
+					if #data.exp > 1 or racial_bonus > 0 then
 						if data.noexp then
 							ColourTell("gray", "", "=")
 							ColourTell("gray", "", total)
@@ -1464,26 +1199,35 @@ function combine(name, line, wc, sr)
 				ColourTell("silver", "", data.other_vampire .. " drinks the corpse. ")
 			end
 			
-			Note()
-			
 			if data.sac then
-				ColourTell("teal", "", "You sacrifice ")
-				for i,sac in ipairs(data.sac) do
-					if i > 1 then
-						ColourTell("teal", "", ", ")
+				if (data.exp or data.pointless or data.gold or data.loot_items) and #data.sac == 1 then
+					-- Short form.
+					ColourTell("silver", "", "Sacced: ")
+					ColourTell("yellow", "", data.sac[1].gold)
+					ColourTell("silver", "", " gp. ")
+				else
+					-- Long form
+					ColourTell("teal", "", "You sacrifice ")
+					for i,sac in ipairs(data.sac) do
+						if i > 1 then
+							ColourTell("teal", "", ", ")
+						end
+						
+						for _,sr in ipairs(sac.item) do
+							ColourTell(RGBColourToName(sr.textcolour), "", sr.text)
+						end
+
+						if sac.gold then
+							ColourTell("teal", "", " (")
+							ColourTell("yellow", "", sac.gold)
+							ColourTell("teal", "", " gp)")
+						end
 					end
-					
-					for _,sr in ipairs(sac.item) do
-						ColourTell(RGBColourToName(sr.textcolour), "", sr.text)
-					end
-					ColourTell("teal", "", " (")
-					ColourTell("yellow", "", sac.gold)
-					ColourTell("teal", "", " gp)")
+					ColourTell("teal", "", ". ")
 				end
-				ColourTell("teal", "", ". ")
-			
-				Note()
 			end
+			
+			Note()
 			
 			if data.preserve then
 				for _, sr in ipairs(data.preserve) do
@@ -1523,38 +1267,78 @@ function combine(name, line, wc, sr)
 		end
         
         if group == "equip" then
-            if starts_with(name, "remove") or starts_with(name, "equip") then
-                local first, last = string.find(line, wc[1], 1, true)
-                local item_sr = style_run_sub(sr, first, last)
-                local slot
-                if starts_with(name, "remove") then
-                    if name == "remove_as" or name == "remove_from" or name == "remove_around" then
-                        slot = wc[2]
-                    else
-                        slot = remove_from_start(name, "remove_")
-                    end
-                    if not data.remove then
-                        data.remove = {}
-                    end
-                    table.insert(data.remove, {
-                        sr = item_sr,
-                        slot = slot
-                    })
-                elseif starts_with(name, "equip") then
-                    if name == "equip_as" or name == "equip_on" or name == "equip_around" then
-                        slot = wc[2]
-                    else
-                        slot = remove_from_start(name, "equip_")
-                    end
-                    if not data.wear then
-                        data.wear = {}
-                    end
-                    table.insert(data.wear, {
-                        sr = item_sr,
-                        slot = slot
-                    })
-                end
-            end
+			if name == "remove" then
+				local item_name, slot
+				
+				if wc.remove2_item ~= "" then
+					item_name = wc.remove2_item
+					slot = wc.remove2_slot
+				elseif wc.remove_wielded_item ~= "" then
+					item_name = wc.remove_wielded_item
+					slot = "wielded"
+				elseif wc.remove_secondary_item ~= "" then
+					item_name = wc.remove_secondary_item
+					slot = "secondary"
+				elseif wc.remove_float_item ~= "" then
+					item_name = wc.remove_float_item
+					slot = "float"
+				elseif wc.remove_aura_item ~= "" then
+					item_name = wc.remove_aura_item
+					slot = "aura"
+				elseif wc.remove_light_item ~= "" then
+					item_name = wc.remove_light_item
+					slot = "light"
+				elseif wc.remove_sleeping_item ~= "" then
+					item_name = wc.remove_sleeping_item
+					slot = "sleeping"
+				end
+				
+				local first, last = string.find(line, item_name, 1, true)
+				local item_sr = style_run_sub(sr, first, last)
+				
+				if not data.remove then
+					data.remove = {}
+				end
+				table.insert(data.remove, {
+					sr = item_sr,
+					slot = slot
+				})
+			elseif name == "equip" then
+				local item_name, slot
+				if wc.equip2_item ~= "" then
+					item_name = wc.equip2_item
+					slot = wc.equip2_slot
+				elseif wc.equip_pin_item ~= "" then
+					item_name = wc.equip_pin_item
+					slot = "pin"
+				elseif wc.equip_secondary_item ~= "" then
+					item_name = wc.equip_secondary_item
+					slot = "secondary"
+				elseif wc.equip_wielded_item ~= "" then
+					item_name = wc.equip_wielded_item
+					slot = "wielded"
+				elseif wc.equip_aura_item ~= "" then
+					item_name = wc.equip_aura_item
+					slot = "aura"
+				elseif wc.equip_float_item ~= "" then
+					item_name = wc.equip_float_item
+					slot = "float"
+				elseif wc.equip_light_item ~= "" then
+					item_name = wc.equip_light_item
+					slot = "light"
+				end
+
+				local first, last = string.find(line, item_name, 1, true)
+				local item_sr = style_run_sub(sr, first, last)
+
+				if not data.wear then
+					data.wear = {}
+				end
+				table.insert(data.wear, {
+					sr = item_sr,
+					slot = slot
+				})
+			end
         
             if data.wear and data.remove and #data.wear == 1 and #data.remove == 1 and data.wear[1].slot == data.remove[1].slot then
                 ColourTell("silver", "", "You swap ")
@@ -2407,6 +2191,12 @@ function suppress_triggers_footer(name)
     EnableTrigger("suppress_all_triggers", false)
     EnableTrigger("suppress_triggers_header", true)
 end
+
+
+
+
+
+
 ]]>
 </script>
 

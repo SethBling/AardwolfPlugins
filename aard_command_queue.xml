@@ -11,7 +11,7 @@
    save_state="y"
    date_written="2020-11-25 19:54:08"
    requires="4.73"
-   version="1.002"
+   version="1.006"
    >
 <description trim="y">
 <![CDATA[
@@ -44,6 +44,12 @@
 		sequence="100"
 	/>    
     <alias
+		match="cq hideecho"
+		enabled="y"
+		script="hideecho_alias"
+		sequence="100"
+	/>
+    <alias
 	   match="cq reload"
        enabled="y"
 	   script="reload_plugin"
@@ -65,6 +71,7 @@
 
 <triggers>
 	<trigger
+	   name="entered_command"
 	   enabled="y"
 	   match="You entered: *"
 	   script="entered_command"
@@ -168,6 +175,7 @@ local help_topics = {
         "Commands:",
         {"cq help",                  "Display this help file."},
         {"cq max",                   "Set the max size of the command queue."},
+        {"cq hideecho",              "Hide the echocommands output."},
 		{"cq reload",                "Reloads the plugin."},
 		{"cq update check|install",  "Checks/installs the most recent version."},
     },
@@ -229,6 +237,8 @@ function OnPluginInstall()
 	create_window()
     displayed = 0
 
+	SetTriggerOption("entered_command", "omit_from_output", GetVariable("hideecho"))
+
 	if IsConnected() then
 		OnPluginConnect()
 	end
@@ -266,6 +276,18 @@ end
 function OnPluginDisable()
 	window:close()
 	window = nil
+end
+
+function hideecho_alias()
+	if GetVariable("hideecho") == "y" then
+		SetVariable("hideecho", "n")
+		ColourNote("aqua", "", "[Command Queue] Showing echocommands.")
+	else
+		SetVariable("hideecho", "y")
+		ColourNote("yellow", "", "[Command Queue] Hiding echocommands.")
+	end
+
+	SetTriggerOption("entered_command", "omit_from_output", GetVariable("hideecho"))
 end
 
 function command_in_queue(cmd)
