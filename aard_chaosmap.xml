@@ -11,7 +11,7 @@
    save_state="y"
    date_written="2023-04-17 11:00:00"
    requires="2.0"
-   version="1.019"
+   version="1.020"
    >
 <description trim="y">
 <![CDATA[
@@ -1056,7 +1056,7 @@ function enable_id(id, dest, enable)
     local count = 0
     
     for _, db_portal in ipairs(db_portals) do
-        if string.find(db_portal.cmd, id, 1, true) or GetVariable("matchbylanding") and db_portal.dest == dest then
+        if string.find(db_portal.cmd, id, 1, true) or GetVariable("matchbylanding") ~= "false" and db_portal.dest == dest then
             local temp = temp_lock[db_portal.cmd]
             local backup = backup_lock[db_portal.cmd]
             
