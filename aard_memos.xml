@@ -57,7 +57,7 @@
 <triggers>
     <trigger
         keep_evaluating="y"
-        match="^\[(  \d| \d\d|\d\d\d) T(\d) (.{6}) (.{3})\](.*[\)\]\}])? (\w\w\w.*) \((Male|Female) ([\w ]+)\)$"
+        match="^\[(  \d| \d\d|\d\d\d) T(\d)(?:\+\d+)? (.{6}) (.{3})\](.*[\)\]\}])? (\w\w\w.*) \((Male|Female) ([\w ]+)\)$"
         regexp="y"
         sequence="100"
         enabled="y"

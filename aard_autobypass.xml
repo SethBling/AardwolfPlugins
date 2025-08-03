@@ -1,0 +1,778 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE muclient>
+
+<muclient>
+<plugin
+   name="Aardwolf_Autobypass"
+   author="Sath"
+   id="bc79ce7abf77a23b37d2c79d"
+   language="Lua"
+   purpose="Automatically update your bypass according to your class/level"
+   save_state="y"
+   date_written="2025-07-28 11:00:00"
+   requires="2.0"
+   version="1.000"
+   >
+<description trim="y">
+<![CDATA[
+]]>
+</description>
+
+</plugin>
+
+<include name="constants.lua"/>
+
+<aliases>
+    <alias
+        match="^autobypass .*$"
+        regexp="y"
+        enabled="y"
+        send_to="10"
+        sequence="999"
+    ><send>autobypass help</send></alias>
+
+	<alias
+	   match="^autobypass help(?: ([a-zA-Z]+))?$"
+       regexp="y"
+       enabled="y"
+	   script="help_alias"
+	   sequence="100"
+	/>
+
+	<alias
+	   match="^autobypass(?: (silent))?$"
+	   regexp="y"
+	   enabled="y"
+	   script="autobypass_alias"
+	   sequence="100"
+	/>
+
+	<alias
+	   match="^autobypass (areas|list)$"
+	   regexp="y"
+	   enabled="y"
+	   script="autobypass_areas_alias"
+	   sequence="100"
+	/>
+
+	<alias
+	   match="^autobypass add ([\w][\w_\d]+) (\d+) (\d+)(?: ([1-9]|10))?(?: ([\w]+))?$"
+	   regexp="y"
+	   enabled="y"
+	   script="autobypass_add_alias"
+	   sequence="100"
+	/>
+
+	<alias
+	   match="^autobypass remove (\d+)$"
+	   regexp="y"
+	   enabled="y"
+	   script="autobypass_remove_number_alias"
+	   sequence="100"
+	/>
+	<alias
+	   match="^autobypass remove (\w[\w_\d]*)$"
+	   regexp="y"
+	   enabled="y"
+	   script="autobypass_remove_area_alias"
+	   sequence="101"
+	/>
+
+	<alias
+	   match="^autobypass config(?: ([\w_]+) (\d+|true|false))?$"
+	   regexp="y"
+	   enabled="y"
+	   script="autobypass_config_alias"
+	   sequence="100"
+	/>
+
+	<alias
+	   match="^autobypass refresh$"
+	   regexp="y"
+	   enabled="y"
+	   script="autobypass_refresh_alias"
+	   sequence="100"
+	/>
+
+	<alias
+	   match="^autobypass apply(?: (silent))?$"
+	   regexp="y"
+	   enabled="y"
+	   script="autobypass_apply_alias"
+	   sequence="100"
+	/>
+	
+<!-- plugin management -->
+    <alias
+	   match="autobypass reload"
+       enabled="y"
+	   script="reload_plugin"
+	   sequence="100"
+	/>
+    <alias
+	   match="autobypass update check"
+       enabled="y"
+	   script="update_check_alias"
+	   sequence="100"
+	/>
+    <alias
+	   match="autobypass update install"
+       enabled="y"
+	   script="update_install_alias"
+	   sequence="100"
+	/>
+</aliases>
+
+
+<triggers>
+<!--
+Vira grants you the "Add +1 bypass (all classes)" wish, at a cost of 9650 quest points.
+Vira grants you the "Add +1 bypass (all classes)" wish, at a cost of 13900 quest points.
+-->
+</triggers>
+
+<script>
+<![CDATA[
+
+
+
+
+
+
+require "gmcphelper"
+require "json"
+
+
+----------------------- Help File Code -----------------------
+local help_topics = {
+    [""] = {
+        "Commands",
+        {"autobypass help", "Display this help file."},
+        "",
+        {"autobypass config [<option> <value>]", "Configure the plugin."},
+        {"autobypass list", "Display the current bypass areas."},
+        {"autobypass remove <area>", "Remove all bypasses for an area."},
+        {"autobypass remove <#>", "Remove a bypass index, as seen in 'autobypass areas'."},
+        {"autobypass add <area> <from-lvl> <to-lvl> [priority] [unless-class]", ""},
+        "Add a bypass for an area within a level range. Optionally specify a priority level from 1-10. 5 is default, higher is more urgent. Optionally specify a character class which will nullify this bypass.",
+        "",
+        {"autobypass refresh", "Clear & set bypasses."},
+        {"autobypass apply [silent]", "Make any necessary changes to bypasses. Optionally hide output."},
+        "",
+        {"autobypass reload", "Reload the plugin."},
+		{"autobypass update check", "Check for updates."},
+		{"autobypass update install", "Install updates."}
+    }
+}
+
+function help_alias(name, line, wc)
+	local topic = wc[1]
+    if not help_topics[topic] then
+        topic = ""
+    end
+
+    local help_lines = help_topics[topic]
+
+    ColourNote("blue", "", "============================================================")
+	ColourNote("white", "", plugin_prefix .. " Help")
+	for _,line in ipairs(help_lines) do
+        if type(line) == "string" then
+            ColourNote("silver", "", Trim(line))
+        else
+            if line[3] == "link" then
+                Hyperlink(line[1], line[1], line[1], "yellow", "", false)
+                ColourTell("yellow", "", string.format("%" .. 33 - string.len(line[1]) .. "s", ""))
+            else
+                ColourTell("yellow", "", string.format("%-33s", line[1]))
+            end
+            if string.len(line[1]) >= 32 then
+                if line[2] ~= "" then
+                    Note()
+                    ColourTell("silver", "", string.format("%33s", ""))
+                end
+            end
+            ColourTell("silver", "", line[2])
+            Note()
+        end
+	end
+    ColourNote("blue", "", "============================================================")
+end
+
+----------------------- Plugin Functionality Code -----------------------
+function OnPluginInstall()
+    bypass_list = json.decode(GetVariable("bypass_list") or "{}")
+    current_bypasses = json.decode(GetVariable("current_bypasses") or "{}")
+
+    ColourNote("white", "", plugin_prefix .. " Installed v" .. GetPluginInfo(GetPluginID(), 19) .. ". Use 'autobypass help' for help.")
+end
+
+function OnPluginSend(cmd)
+    local cmd_lower = string.lower(cmd)
+
+    local first_word, second_word = cmd_lower:match("^(%S+)%s*(%S*)")
+    if first_word == "campa" or first_word == "campai" or first_word == "campaig" or first_word == "campaign" or first_word == "cp" or first_word == "q" or first_word == "qu" or first_word == "que" or first_word == "ques" or first_word == "quest" then
+        if second_word == "r" or second_word == "re" or second_word == "req" or second_word == "requ" or second_word == "reque" or second_word == "reques" or second_word == "request" then
+            apply_bypass_changes(true)
+        end
+    end
+    
+    
+
+end
+
+function autobypass_alias(name, line, wc)
+    local silent = false
+    if wc[1] == "silent" then
+        silent = true
+    end
+
+    -- TODO: Implement the autobypass functionality here.
+
+    local performed_action = false
+
+    if not performed_action and not silent then
+        ColourNote("white", "", plugin_prefix .. " No changes.")
+    end
+end
+
+ValidClasses = {
+    "mag",
+    "war",
+    "thi",
+    "ran",
+    "psi",
+    "pal",
+    "cle",
+}
+
+ClassListString = table.concat(ValidClasses, ", ")
+
+function valid_class(class)
+    if not class or class == "" then
+        return true
+    end
+
+    class = class:lower()
+    for _, valid_class in ipairs(ValidClasses) do
+        if valid_class == class then
+            return true
+        end
+    end
+
+    return false
+end
+
+function autobypass_areas_alias()
+    ColourNote("white", "", plugin_prefix .. " Current Bypasses:")
+    
+    if #bypass_list == 0 then
+        ColourNote("silver", "", "  No bypasses set. Check 'autobypass help' for how to add them.")
+        return
+    end
+
+    for i, bypass in ipairs(bypass_list) do
+        ColourNote("silver", "", string.format("%3d. %-30s: lvl %3d-%-3d  pri %-2d%s",
+            i, bypass.area, bypass.from_level, bypass.to_level, bypass.priority,
+            bypass.unless_class and (" unless class " .. bypass.unless_class) or ""))
+    end
+end
+
+function autobypass_add_alias(name, line, wc)
+    local bypass_data = {
+        area = wc[1],
+        from_level = tonumber(wc[2]),
+        to_level = tonumber(wc[3]),
+        priority = tonumber(wc[4] or 5) or 5,
+        unless_class = wc[5] and wc[5] ~= "" and wc[5]:lower() or nil
+    }
+
+    if not bypass_data.area or bypass_data.area == "" then
+        ColourNote("red", "", plugin_prefix .. " Invalid area: " .. (bypass_data.area or "nil"))
+        return
+    end
+
+    if bypass_data.from_level > bypass_data.to_level or bypass_data.from_level < 1 or bypass_data.to_level > 201 then
+        ColourNote("red", "", plugin_prefix .. " Invalid level range: " .. bypass_data.from_level .. " to " .. bypass_data.to_level)
+        return
+    end
+
+    if bypass_data.unless_class and not valid_class(bypass_data.unless_class) then
+        ColourNote("red", "", plugin_prefix .. " Invalid class: " .. bypass_data.unless_class .. ". Valid classes are: " .. ClassListString)
+        return
+    end
+
+    if bypass_already_exists(bypass_data) then
+        ColourNote("red", "", plugin_prefix .. " Bypass already exists for area: " .. bypass_data.area)
+        return
+    end
+
+    -- Add the bypass to the list
+    add_bypass_data(bypass_data)
+
+    ColourNote("aqua", "", plugin_prefix .. " Added bypass for area: " .. bypass_data.area ..
+        " from level " .. bypass_data.from_level .. " to level " .. bypass_data.to_level ..
+        (bypass_data.priority and (" with priority " .. bypass_data.priority) or "") ..
+        (bypass_data.unless_class and (" unless you have class " .. bypass_data.unless_class) or ""))
+end
+
+function autobypass_remove_number_alias(name, line, wc)
+    local index = tonumber(wc[1])
+    if not index or index < 1 or index > #bypass_list then
+        ColourNote("red", "", plugin_prefix .. " Invalid bypass index: " .. (wc[1] or "nil"))
+        return
+    end
+
+    local removed_bypass = table.remove(bypass_list, index)
+    SetVariable("bypass_list", json.encode(bypass_list))
+
+    ColourNote("aqua", "", plugin_prefix .. " Removed bypass for area: " .. removed_bypass.area)
+end
+
+function autobypass_remove_area_alias(name, line, wc)
+    local area = wc[1]
+    if not area or area == "" then
+        ColourNote("red", "", plugin_prefix .. " Invalid area: " .. (area or "nil"))
+        return
+    end
+
+    local removed_any = false
+    for i = #bypass_list, 1, -1 do
+        if bypass_list[i].area == area then
+            table.remove(bypass_list, i)
+            removed_any = true
+        end
+    end
+
+    if removed_any then
+        SetVariable("bypass_list", json.encode(bypass_list))
+        ColourNote("aqua", "", plugin_prefix .. " Removed all bypasses for area: " .. area)
+    else
+        ColourNote("red", "", plugin_prefix .. " No bypasses found for area: " .. area)
+    end
+end
+
+function add_bypass_data(bypass_data)
+    table.insert(bypass_list, bypass_data)
+    table.sort(bypass_list, bypass_sort_comparison)
+    SetVariable("bypass_list", json.encode(bypass_list))
+end
+
+function bypass_sort_comparison(a, b)
+    if a.from_level ~= b.from_level then
+        return a.from_level < b.from_level
+    end
+
+    if a.to_level ~= b.to_level then
+        return a.to_level < b.to_level
+    end
+
+    if a.priority ~= b.priority then
+        return a.priority < b.priority
+    end
+
+    if a.unless_class ~= b.unless_class then
+        return (a.unless_class or "") < (b.unless_class or "")
+    end
+
+    return a.area < b.area
+end
+
+function bypass_already_exists(bypass_data)
+    for _, existing_bypass in ipairs(bypass_list) do
+        local match = true
+        for key, value in pairs(bypass_data) do
+            if existing_bypass[key] ~= value then
+                match = false
+                break
+            end
+        end
+
+        for key, value in pairs(existing_bypass) do
+            if bypass_data[key] ~= value then
+                match = false
+                break
+            end
+        end
+
+        -- If all keys match, we have a match
+        if match then
+            return true
+        end
+    end
+
+    return false
+end
+
+ConfigOptions = {
+    {
+        name = "wish_slots",
+        type = "number",
+        range = {0, 2},
+    },
+    {
+        name = "have_instinct",
+        type = "boolean",
+    },
+}
+
+function autobypass_config_alias(name, line, wc)
+    local option_name = wc[1]
+    local option_value = wc[2]
+
+    if option_name and option_name ~= "" then
+        for _, option in ipairs(ConfigOptions) do
+            if option.name == option_name then
+                if option.type == "boolean" then
+                    if option_value == "true" or option_value == "1" then
+                        SetVariable(option.name, "true")
+                        ColourNote("white", "", plugin_prefix .. " Set " .. option.name .. " to true.")
+                    elseif option_value == "false" or option_value == "0" then
+                        SetVariable(option.name, "false")
+                        ColourNote("white", "", plugin_prefix .. " Set " .. option.name .. " to false.")
+                    else
+                        ColourNote("red", "", plugin_prefix .. " Invalid value for boolean option: " .. option_value)
+                    end
+                elseif option.type == "number" then
+                    local num_value = tonumber(option_value)
+                    if not num_value or num_value < option.range[1] or num_value > option.range[2] then
+                        ColourNote("red", "", plugin_prefix .. " Invalid value for number option: " .. option_value .. ". Must be between " .. option.range[1] .. " and " .. option.range[2])
+                        return
+                    end
+
+                    if num_value then
+                        SetVariable(option.name, num_value)
+                        ColourNote("white", "", plugin_prefix .. " Set " .. option.name .. " to " .. num_value)
+                    else
+                        ColourNote("red", "", plugin_prefix .. " Invalid value for number option: " .. option_value)
+                    end
+                else
+                    ColourNote("red", "", plugin_prefix .. " Unknown option type: " .. option.type)
+                end
+                return
+            end
+        end
+
+        ColourNote("red", "", plugin_prefix .. " Unknown configuration option: " .. option_name)
+    else
+        ColourNote("white", "", plugin_prefix .. " Current Configuration:")
+        for _, option in ipairs(ConfigOptions) do
+            local value = GetVariable(option.name)
+            if value then
+                ColourNote(
+                    "yellow", "", string.format("  %15s", option.name),
+                    "white", "", ":",
+                    "silver", "", string.format(" %s", value)
+                )
+            else
+                if option.type == "boolean" then
+                    ColourNote(
+                        "yellow", "", string.format("  %15s", option.name),
+                        "white", "", ":",
+                        "silver", "", " not set (values: true/false)"
+                    )
+                elseif option.type == "number" then
+                    ColourNote(
+                        "yellow", "", string.format("  %15s", option.name),
+                        "white", "", ":",
+                        "silver", "", string.format(" not set (range: %d-%d)", option.range[1], option.range[2])
+                    )
+                end
+            end
+        end
+    end
+
+end
+
+function get_total_bypass_slots()
+    if not GetVariable("wish_slots") then
+        ColourNote("red", "", plugin_prefix .. " Wish slots not set. Use 'autobypass config wish_slots <number>' to set it.")
+        return nil
+    end
+
+    local subclass = gmcp("char.base.subclass")
+    if not subclass then
+        ColourNote("red", "", plugin_prefix .. " Invalid player subclass: " .. (subclass or "nil"))
+        return nil
+    end
+
+    local slots = tonumber(GetVariable("wish_slots"))
+
+    if subclass == "Navigator" then
+        slots = slots + 2
+
+        if GetVariable("have_instinct") and GetVariable("have_instinct") == "true" then
+            slots = slots + 1
+        end
+
+        local int_plus_wis = gmcp("char.stats.int") + gmcp("char.stats.wis")
+        if int_plus_wis >= 800 then
+            slots = slots + 1
+        end
+    end
+
+    return slots
+end
+
+function get_current_desired_bypasses()
+    local desired_bypasses = {}
+    local level = tonumber(gmcp("char.base.level") or "")
+
+    if not level or level < 1 or level > 201 then
+        ColourNote("red", "", plugin_prefix .. " Invalid player level: " .. (level or "nil"))
+        return nil
+    end
+
+    local slots = get_total_bypass_slots()
+    if not slots then
+        return nil
+    end
+
+    for _, bypass_item in ipairs(bypass_list) do
+        if bypass_item.from_level <= level and bypass_item.to_level >= level then
+            if bypass_item.unless_class and bypass_item.unless_class == subclass then
+                ColourNote("yellow", "", plugin_prefix .. " Skipping bypass for " .. bypass_item.area .. " (unless class: " .. subclass .. ")")
+            else
+                table.insert(desired_bypasses, bypass_item)
+            end
+        end
+    end
+
+    table.sort(desired_bypasses, desired_bypass_sort_comparison)
+
+    -- Remove duplicate copies of areas, starting at the end
+    for i = #desired_bypasses, 2, -1 do
+        local found_copy = false
+        for j = i - 1, 1, -1 do
+            if desired_bypasses[i].area == desired_bypasses[j].area then
+                found_copy = true
+                break
+            end
+        end
+
+        if found_copy then
+            table.remove(desired_bypasses, i)
+        end
+    end
+
+    -- Limit the number of desired bypasses to the number of available slots
+    if #desired_bypasses > slots then
+        for i = #desired_bypasses, slots + 1, -1 do
+            table.remove(desired_bypasses, i)
+        end
+    end
+
+    return desired_bypasses
+end
+
+function desired_bypass_sort_comparison(a, b)
+    if a.priority ~= b.priority then
+        return a.priority > b.priority
+    end
+
+    if a.to_level ~= b.to_level then
+        return a.to_level > b.to_level
+    end
+
+    if a.from_level ~= b.from_level then
+        return a.from_level > b.from_level
+    end
+
+    if a.unless_class ~= b.unless_class then
+        return (a.unless_class or "") > (b.unless_class or "")
+    end
+
+    return a.area < b.area
+end
+
+function apply_bypass_changes(silent)
+    local desired_bypasses = get_current_desired_bypasses()
+
+    if not desired_bypasses then
+        if not silent then
+            ColourNote("red", "", plugin_prefix .. " Could not determine desired bypasses.")
+        end
+
+        return
+    end
+
+    -- First, remove any bypasses that are not in the desired list
+    for _, current_bypass in ipairs(current_bypasses) do
+        local found = false
+        for _, desired_bypass in ipairs(desired_bypasses) do
+            if current_bypass.area == desired_bypass.area then
+                found = true
+                break
+            end
+        end
+
+        if not found then
+            Send("bypass " .. current_bypass.area)
+            if not silent then
+                ColourNote("silver", "", plugin_prefix .. " Removed bypass for area: " .. current_bypass.area)
+            end
+        end
+    end
+
+    -- Now, add any desired bypasses that are not currently set
+    for _, desired_bypass in ipairs(desired_bypasses) do
+        local found = false
+        for _, current_bypass in ipairs(current_bypasses) do
+            if current_bypass.area == desired_bypass.area then
+                found = true
+                break
+            end
+        end
+
+        if not found then
+            Send("bypass " .. desired_bypass.area)
+            if not silent then
+                ColourNote("silver", "", plugin_prefix .. " Added bypass for area: " .. desired_bypass.area ..
+                    " from level " .. desired_bypass.from_level .. " to level " .. desired_bypass.to_level ..
+                    (desired_bypass.priority and (" with priority " .. desired_bypass.priority) or "") ..
+                    (desired_bypass.unless_class and (" unless you have class " .. desired_bypass.unless_class) or ""))
+            end
+        end
+    end
+
+    -- Update the current bypasses list
+    current_bypasses = desired_bypasses
+    SetVariable("current_bypasses", json.encode(current_bypasses))
+end
+
+function autobypass_refresh_alias()
+    current_bypasses = {}
+    SetVariable("current_bypasses", json.encode(current_bypasses))
+
+    Send("bypass clear")
+    apply_bypass_changes(false)
+end
+
+function autobypass_apply_alias(name, line, wc)
+    local silent = false
+    if wc[1] == "silent" then
+        silent = true
+    end
+
+    apply_bypass_changes(silent)
+end
+
+----------------------- Plugin Update Code -----------------------
+plugin_url = "https://sethbling.s3.us-west-2.amazonaws.com/Downloads/Aardwolf/plugins/aard_autobypass.xml"
+SetVariable("DownloadURL", plugin_url)
+plugin_protocol = "HTTPS"
+plugin_prefix = "[AutoBypass]"
+
+
+function update_check_alias()
+    update_plugin("check")
+    ColourNote("white", "", plugin_prefix .. " Checking for updated version...")
+end
+
+function update_install_alias()
+    update_plugin("install")
+    ColourNote("white", "", plugin_prefix .. " Checking for and installing updated version...")
+end
+-- Code taken from Durel's dinv plugin
+function reload_plugin()
+    local scriptPrefix = GetAlphaOption("script_prefix")
+    local retval
+
+    -- If the user has not already specified the script prefix for this version of mush, pick a
+    -- reasonable default value
+    if (scriptPrefix == "") then
+        scriptPrefix = "\\\\\\"
+        SetAlphaOption("script_prefix", scriptPrefix)
+    end
+
+    -- Tell mush to reload the plugin in one second.  We can't do it directly here because a
+    -- plugin can't unload itself.  Even if it could, how could it tell mush to load it again
+    -- if it weren't installed? 
+    retval = Execute(scriptPrefix.."DoAfterSpecial(0.1, \"ReloadPlugin('"..GetPluginID().."')\", sendto.script)")
+end
+
+-- Code taken from Durel's dinv plugin
+function update_plugin(mode)
+    update_mode = mode
+
+    wait.make(get_plugin_file)
+end
+
+-- Code taken from Durel's dinv plugin
+function get_plugin_file()
+    local urlThread = async.request(plugin_url, plugin_protocol)
+
+    if not urlThread then
+        note_error("Couldn't create async url request.")
+        return
+    end
+
+    local timeout = 10
+    local totTime = 0
+    while (urlThread:alive() and totTime < timeout) do
+        wait.time(0.1)
+        totTime = totTime + 0.1
+    end
+
+    local remoteRet, pluginData, status, headers, fullStatus = urlThread:join()
+
+    if not status then
+        ColourNote("red", "", plugin_prefix .. " Couldn't download plugin file. No status code.")
+        
+        return
+    end
+
+    if (status ~= 200) then
+        ColourNote("red", "", plugin_prefix .. " Plugin file request status code: " .. status .. ": " .. fullStatus)
+        return
+    end
+    
+    local currentVersion = GetPluginInfo(GetPluginID(), 19) or 0
+    local currentVerStr  = string.format("%1.3f", currentVersion)
+    local remoteVerStr   = string.match(pluginData, '%s%s+version="([0-9%.]+)"')
+    local remoteVersion  = tonumber(remoteVerStr or "") or 0
+
+    if remoteVersion == currentVersion then
+        ColourNote("white", "", plugin_prefix .. " You are running the most recent version (v" .. currentVerStr .. ")")
+    elseif (remoteVersion < currentVersion) then
+        ColourNote("white", "", plugin_prefix .. " You have a newer version than is publicly available. (v" .. currentVerStr .. ")")
+    elseif (update_mode == "check") then
+        ColourNote("white", "", plugin_prefix .. " You are running v" .. currentVerStr .. ", but there's a newer version v" .. remoteVerStr)
+    elseif (update_mode == "install") then
+        ColourNote("white", "", plugin_prefix .. " Updating plugin from version " .. currentVerStr .. " to version " .. remoteVerStr) 
+
+        local pluginFile = GetPluginInfo(GetPluginID(), 6)
+        local file = io.open(pluginFile, "wb")
+
+        if file then
+            file:write(pluginData)
+            file:close()
+            reload_plugin()
+        else
+            ColourNote("red", "", plugin_prefix .. " Couldn't open file " .. pluginFile .. " for writing.")
+        end
+    else
+        ColourNote("red", "", plugin_prefix .. " Invalid update mode: " .. update_mode)
+    end
+end
+----------------------- End Plugin Update Code -----------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+]]>
+</script>
+
+
+</muclient>
