@@ -139,6 +139,8 @@ Vira grants you the "Add +1 bypass (all classes)" wish, at a cost of 13900 quest
 
 
 
+
+
 require "gmcphelper"
 require "json"
 
@@ -212,7 +214,15 @@ function OnPluginSend(cmd)
     local first_word, second_word = cmd_lower:match("^(%S+)%s*(%S*)")
     if first_word == "campa" or first_word == "campai" or first_word == "campaig" or first_word == "campaign" or first_word == "cp" or first_word == "q" or first_word == "qu" or first_word == "que" or first_word == "ques" or first_word == "quest" then
         if second_word == "r" or second_word == "re" or second_word == "req" or second_word == "requ" or second_word == "reque" or second_word == "reques" or second_word == "request" then
-            apply_bypass_changes(true)
+            if GetVariable("wish_slots") then
+                if not GetVariable("first_clear") then
+                    ColourNote("white", "", plugin_prefix .. " Clearing all bypasses to get into a known state.")
+                    clear_current_bypasses()
+                end
+                apply_bypass_changes(true)
+            else
+                ColourNote("yellow", "", plugin_prefix .. " Wish slots not set. Use 'autobypass config wish_slots <0-2>' to set it.")
+            end
         end
     end
     
@@ -236,30 +246,23 @@ function autobypass_alias(name, line, wc)
 end
 
 ValidClasses = {
-    "mag",
-    "war",
-    "thi",
-    "ran",
-    "psi",
-    "pal",
-    "cle",
+    mag = 0,
+    cle = 1,
+    thi = 2,
+    war = 3,
+    ran = 4,
+    pal = 5,
+    psi = 6,
 }
 
-ClassListString = table.concat(ValidClasses, ", ")
+ClassListString = "mag, cle, thi, war, ran, pal, psi"
 
 function valid_class(class)
     if not class or class == "" then
         return true
     end
 
-    class = class:lower()
-    for _, valid_class in ipairs(ValidClasses) do
-        if valid_class == class then
-            return true
-        end
-    end
-
-    return false
+    return ValidClasses[class:lower()] ~= nil
 end
 
 function autobypass_areas_alias()
@@ -485,7 +488,7 @@ end
 
 function get_total_bypass_slots()
     if not GetVariable("wish_slots") then
-        ColourNote("red", "", plugin_prefix .. " Wish slots not set. Use 'autobypass config wish_slots <number>' to set it.")
+        ColourNote("red", "", plugin_prefix .. " Wish slots not set. Use 'autobypass config wish_slots <0-2>' to set it.")
         return nil
     end
 
@@ -528,12 +531,18 @@ function get_current_desired_bypasses()
     end
 
     for _, bypass_item in ipairs(bypass_list) do
-        if bypass_item.from_level <= level and bypass_item.to_level >= level then
-            if bypass_item.unless_class and bypass_item.unless_class == subclass then
-                ColourNote("yellow", "", plugin_prefix .. " Skipping bypass for " .. bypass_item.area .. " (unless class: " .. subclass .. ")")
-            else
-                table.insert(desired_bypasses, bypass_item)
-            end
+        local matches_filter = true
+
+        if bypass_item.from_level > level or bypass_item.to_level < level then
+            matches_filter = false
+        end
+
+        if bypass_item.unless_class and valid_class(bypass_item.unless_class) and not string.find(gmcp("char.base.classes"), ValidClasses[bypass_item.unless_class]) then
+            matches_filter = false
+        end
+
+        if matches_filter then
+            table.insert(desired_bypasses, bypass_item)
         end
     end
 
@@ -639,11 +648,15 @@ function apply_bypass_changes(silent)
     SetVariable("current_bypasses", json.encode(current_bypasses))
 end
 
-function autobypass_refresh_alias()
+function clear_current_bypasses()
     current_bypasses = {}
     SetVariable("current_bypasses", json.encode(current_bypasses))
 
     Send("bypass clear")
+end
+
+function autobypass_refresh_alias()
+    clear_current_bypasses()
     apply_bypass_changes(false)
 end
 
@@ -755,6 +768,8 @@ function get_plugin_file()
     end
 end
 ----------------------- End Plugin Update Code -----------------------
+
+
 
 
 
