@@ -11,7 +11,7 @@
    save_state="y"
    date_written="2025-07-28 11:00:00"
    requires="2.0"
-   version="1.000"
+   version="1.001"
    >
 <description trim="y">
 <![CDATA[
@@ -596,7 +596,7 @@ function get_current_desired_bypasses()
             matches_filter = false
         end
 
-        if bypass_item.unless_class and valid_class(bypass_item.unless_class) and not string.find(gmcp("char.base.classes"), ValidClasses[bypass_item.unless_class]) then
+        if bypass_item.unless_class and valid_class(bypass_item.unless_class) and string.find(gmcp("char.base.classes"), ValidClasses[bypass_item.unless_class]) then
             matches_filter = false
         end
 
@@ -692,7 +692,12 @@ function apply_bypass_changes(silent)
         end
 
         if not found then
-            Send("bypass " .. desired_bypass.area)
+            if desired_bypass.priority and desired_bypass.priority > 5 then
+                Send("bypass " .. desired_bypass.area .. " first")
+            else
+                Send("bypass " .. desired_bypass.area)
+            end
+
             if not silent then
                 ColourNote("silver", "", plugin_prefix .. " Added bypass for area: " .. desired_bypass.area ..
                     " from level " .. desired_bypass.from_level .. " to level " .. desired_bypass.to_level ..
