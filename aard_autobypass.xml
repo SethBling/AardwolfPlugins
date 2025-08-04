@@ -159,6 +159,8 @@ Vira grants you the "Add +1 bypass (all classes)" wish, at a cost of 13900 quest
 
 
 
+
+
 require "gmcphelper"
 require "json"
 
@@ -401,7 +403,7 @@ function autobypass_textbox_alias()
     end
 end
 
-SathData = '[{"to_level":8,"priority":4,"area":"graveyard","from_level":5},{"to_level":18,"priority":8,"area":"chess","from_level":5},{"to_level":27,"priority":10,"area":"gauntlet","from_level":5},{"to_level":18,"priority":6,"area":"gallows","from_level":11},{"to_level":48,"priority":7,"area":"ahner","from_level":20},{"to_level":67,"priority":7,"area":"kingsholm","from_level":30},{"to_level":52,"priority":6,"area":"andarin","from_level":35},{"to_level":65,"priority":8,"area":"citadel","from_level":50},{"to_level":99,"priority":2,"area":"lemdagor","from_level":50},{"to_level":82,"priority":4,"area":"uplanes","from_level":60},{"to_level":77,"priority":3,"area":"fortress","from_level":61},{"to_level":96,"priority":9,"area":"lplanes","from_level":70},{"to_level":97,"priority":10,"area":"nenukon","from_level":72},{"to_level":122,"priority":3,"area":"prosper","from_level":100},{"to_level":107,"priority":2,"area":"nenukon","from_level":101},{"to_level":111,"priority":10,"area":"ft1","from_level":104},{"to_level":122,"priority":8,"area":"agroth","from_level":105},{"to_level":117,"priority":9,"unless_class":"mag","area":"deathtrap","from_level":110},{"to_level":172,"priority":7,"area":"horath","from_level":120},{"to_level":148,"priority":6,"area":"drageran","from_level":130},{"to_level":151,"priority":7,"area":"bonds","from_level":140},{"to_level":162,"priority":4,"area":"gathering","from_level":140},{"to_level":164,"priority":5,"area":"adaldar","from_level":155},{"to_level":187,"priority":6,"area":"annwn","from_level":160},{"to_level":192,"priority":7,"area":"cataclysm","from_level":165},{"to_level":193,"priority":8,"area":"rebellion","from_level":170},{"to_level":201,"priority":7,"area":"sanctum","from_level":180},{"to_level":201,"priority":8,"area":"partroxis","from_level":180},{"to_level":201,"priority":9,"area":"ninehells","from_level":195},{"to_level":201,"priority":10,"area":"shadowsend","from_level":200}]'
+SathData = '[{"to_level":8,"priority":4,"area":"graveyard","from_level":5},{"to_level":18,"priority":8,"area":"chess","from_level":5},{"to_level":27,"priority":10,"area":"gauntlet","from_level":5},{"to_level":18,"priority":6,"area":"gallows","from_level":11},{"to_level":48,"priority":7,"area":"ahner","from_level":20},{"to_level":67,"priority":7,"area":"kingsholm","from_level":30},{"to_level":52,"priority":6,"area":"andarin","from_level":35},{"to_level":65,"priority":8,"area":"citadel","from_level":50},{"to_level":99,"priority":2,"area":"lemdagor","from_level":50},{"to_level":82,"priority":4,"area":"uplanes","from_level":60},{"to_level":117,"priority":1,"area":"darklight","from_level":60},{"to_level":77,"priority":3,"area":"fortress","from_level":61},{"to_level":96,"priority":9,"area":"lplanes","from_level":70},{"to_level":97,"priority":10,"area":"nenukon","from_level":72},{"to_level":122,"priority":3,"area":"prosper","from_level":100},{"to_level":107,"priority":2,"area":"nenukon","from_level":101},{"to_level":112,"priority":1,"area":"xylmos","from_level":101},{"to_level":111,"priority":10,"area":"ft1","from_level":104},{"to_level":122,"priority":8,"area":"agroth","from_level":105},{"area":"deathtrap","from_level":110,"to_level":117,"priority":9,"unless_class":"mag"},{"to_level":122,"priority":1,"area":"stuff","from_level":110},{"to_level":118,"priority":1,"area":"masq","from_level":111},{"to_level":172,"priority":7,"area":"horath","from_level":120},{"to_level":148,"priority":6,"area":"drageran","from_level":130},{"to_level":151,"priority":5,"area":"bonds","from_level":140},{"to_level":162,"priority":3,"area":"gathering","from_level":140},{"to_level":175,"priority":1,"area":"mistridge","from_level":150},{"to_level":177,"priority":1,"area":"desolation","from_level":150},{"to_level":164,"priority":4,"area":"adaldar","from_level":155},{"to_level":187,"priority":6,"area":"annwn","from_level":160},{"to_level":192,"priority":7,"area":"cataclysm","from_level":165},{"to_level":193,"priority":8,"area":"rebellion","from_level":170},{"to_level":201,"priority":7,"area":"sanctum","from_level":180},{"to_level":201,"priority":8,"area":"partroxis","from_level":180},{"to_level":201,"priority":9,"area":"ninehells","from_level":195},{"to_level":201,"priority":10,"area":"shadowsend","from_level":200}]'
 
 function autobypass_sath_alias()
     ColourNote("white", "", plugin_prefix .. " Sample autobypass data from Sath:")
@@ -832,6 +834,8 @@ function get_plugin_file()
     end
 end
 ----------------------- End Plugin Update Code -----------------------
+
+
 
 
 
