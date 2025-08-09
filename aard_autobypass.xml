@@ -151,7 +151,8 @@ Vira grants you the "Add +1 bypass (all classes)" wish, at a cost of 13900 quest
 <![CDATA[
 require "gmcphelper"
 require "json"
-
+require "wait"
+require "async"
 
 ----------------------- Help File Code -----------------------
 local help_topics = {
