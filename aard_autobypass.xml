@@ -11,7 +11,7 @@
    save_state="y"
    date_written="2025-07-28 11:00:00"
    requires="2.0"
-   version="1.005"
+   version="1.006"
    >
 <description trim="y">
 <![CDATA[
@@ -157,6 +157,8 @@ Vira grants you the "Add +1 bypass (all classes)" wish, at a cost of 13900 quest
 
 <script>
 <![CDATA[
+
+
 
 
 require "gmcphelper"
@@ -809,6 +811,7 @@ end
 function clear_current_bypasses()
     current_bypasses = {}
     SetVariable("current_bypasses", json.encode(current_bypasses))
+    SetVariable("first_clear", "true")
 
     Send("bypass clear")
 end
@@ -926,6 +929,8 @@ function get_plugin_file()
     end
 end
 ----------------------- End Plugin Update Code -----------------------
+
+
 
 
 
