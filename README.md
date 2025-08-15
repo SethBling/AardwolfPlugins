@@ -8,6 +8,13 @@ Set up training priorities, then use the 'autotrain' command to automatically sp
 autotrain help
 ```
 
+**Aard_Autobypass**
+Set up bypass priorities by level. Whenever 'cp request' or 'quest request', the plugin will automatically update your bypasses first.
+
+```
+autobypass help
+```
+
 **Aard_Chaosmap**
 
 Track the landing room of every chaos portal you use. Use a single command to enable/disable regular chaos portals for GQs.

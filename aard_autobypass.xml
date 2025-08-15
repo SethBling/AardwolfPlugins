@@ -11,7 +11,7 @@
    save_state="y"
    date_written="2025-07-28 11:00:00"
    requires="2.0"
-   version="1.003"
+   version="1.004"
    >
 <description trim="y">
 <![CDATA[
@@ -61,6 +61,14 @@
 	   enabled="y"
 	   script="autobypass_add_alias"
 	   sequence="100"
+	/>
+
+    <alias
+       match="^autobypass temp ([\w][\w_\d]+)(?: ([\w]+))?$"
+       regexp="y"
+       enabled="y"
+       script="autobypass_temp_alias"
+       sequence="100"
 	/>
 
 	<alias
@@ -149,6 +157,8 @@ Vira grants you the "Add +1 bypass (all classes)" wish, at a cost of 13900 quest
 
 <script>
 <![CDATA[
+
+
 require "gmcphelper"
 require "json"
 require "wait"
@@ -164,6 +174,7 @@ local help_topics = {
         {"autobypass list", "Display your bypass priorities."},
         {"autobypass add <area> <from-lvl> <to-lvl> [priority] [unless-class]", ""},
         "Add a bypass for an area within a level range. Always use the single-word area keyword, like 'xylmos', 'ftii', 'nenukon', 'sohtwo' etc. Optionally specify a priority level from 1-10. 5 is default, higher is more urgent. Optionally specify a character class which will nullify this bypass (for example having mag for access to 'major creation' may obviate the need to bypass deathtrap).",
+        {"autobypass temp <area> [minutes]", "Temporarily bypass an area. Defaults to 10min."},
         {"autobypass remove <area>", "Remove all bypasses for an area."},
         {"autobypass remove <#>", "Remove a bypass index, as seen in 'autobypass areas'."},
         {"autobypass textbox", "Edit the raw autobypass data in a text box."},
@@ -214,6 +225,7 @@ end
 function OnPluginInstall()
     bypass_list = json.decode(GetVariable("bypass_list") or "{}")
     current_bypasses = json.decode(GetVariable("current_bypasses") or "{}")
+    temp_bypasses = json.decode(GetVariable("temp_bypasses") or "{}")
 
     ColourNote("white", "", plugin_prefix .. " Installed v" .. GetPluginInfo(GetPluginID(), 19) .. ". Use 'autobypass help' for help.")
 end
@@ -331,6 +343,65 @@ function autobypass_add_alias(name, line, wc)
         " from level " .. bypass_data.from_level .. " to level " .. bypass_data.to_level ..
         (bypass_data.priority and (" with priority " .. bypass_data.priority) or "") ..
         (bypass_data.unless_class and (" unless you have class " .. bypass_data.unless_class) or ""))
+end
+
+function autobypass_temp_alias(name, line, wc)
+    local area = wc[1]
+    local minutes_specified = wc[2] and wc[2] ~= ""
+    local minutes = tonumber(wc[2]) or 10
+
+    if not area or area == "" then
+        ColourNote("red", "", plugin_prefix .. " Invalid area: " .. (area or "nil"))
+        return
+    end
+
+    if minutes < 1 then
+        ColourNote("red", "", plugin_prefix .. " Invalid duration: " .. (minutes or "nil") .. ". Must be at least 1 minute.")
+        return
+    end
+
+    local temp_bypass = {
+        area = area,
+        expires_at = os.time() + (minutes * 60)
+    }
+
+    -- Check if the area is already temporarily bypassed
+    for i, existing_bypass in ipairs(temp_bypasses) do
+        if existing_bypass.area == area then
+            if minutes_specified then
+                -- Update the expiration time if it already exists
+                existing_bypass.expires_at = temp_bypass.expires_at
+                ColourNote(
+                    "aqua", "", plugin_prefix .. " Updated temporary bypass for ",
+                    "yellow", "", area,
+                    "aqua", "", " to expire at ",
+                    "yellow", "", os.date("%Y-%m-%d %H:%M:%S", existing_bypass.expires_at)
+                )
+                SetVariable("temp_bypasses", json.encode(temp_bypasses))
+            else
+                -- Remove the existing temporary bypass
+                ColourNote("aqua", "", plugin_prefix .. " Removed temporary bypass for area: " .. area)
+                table.remove(temp_bypasses, i)
+                SetVariable("temp_bypasses", json.encode(temp_bypasses))
+            end
+
+            apply_bypass_changes(true)
+            
+            return
+        end
+    end
+
+    table.insert(temp_bypasses, temp_bypass)
+    SetVariable("temp_bypasses", json.encode(temp_bypasses))
+
+    ColourNote(
+        "aqua", "", plugin_prefix .. " Added temporary bypass for ",
+        "yellow", "", area,
+        "aqua", "", " to expire at ",
+        "yellow", "", os.date("%Y-%m-%d %H:%M:%S", temp_bypass.expires_at)
+    )
+
+    apply_bypass_changes(true)
 end
 
 function autobypass_remove_number_alias(name, line, wc)
@@ -569,6 +640,24 @@ function get_total_bypass_slots()
     return slots
 end
 
+function get_current_temporary_bypasses()
+    local current_time = os.time()
+    local valid_temp_bypasses = {}
+
+    for i = #temp_bypasses, 1, -1 do
+        local temp_bypass = temp_bypasses[i]
+        if temp_bypass.expires_at and temp_bypass.expires_at > current_time then
+            table.insert(valid_temp_bypasses, temp_bypass)
+        else
+            -- Remove expired temporary bypasses
+            table.remove(temp_bypasses, i)
+            SetVariable("temp_bypasses", json.encode(temp_bypasses))
+        end
+    end
+
+    return valid_temp_bypasses
+end
+
 function get_current_desired_bypasses()
     local desired_bypasses = {}
     local level = tonumber(gmcp("char.base.level") or "")
@@ -597,6 +686,17 @@ function get_current_desired_bypasses()
         if matches_filter then
             table.insert(desired_bypasses, bypass_item)
         end
+    end
+
+    -- Add temporary bypasses that are still valid
+    local temp_bypasses = get_current_temporary_bypasses()
+    for _, temp_bypass in ipairs(temp_bypasses) do
+        table.insert(desired_bypasses, {
+            area = temp_bypass.area,
+            from_level = 0,
+            to_level = 0,
+            priority = 11,
+        })
     end
 
     table.sort(desired_bypasses, desired_bypass_sort_comparison)
@@ -826,6 +926,8 @@ function get_plugin_file()
     end
 end
 ----------------------- End Plugin Update Code -----------------------
+
+
 
 
 
