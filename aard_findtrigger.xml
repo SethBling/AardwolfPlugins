@@ -11,7 +11,7 @@
    save_state="y"
    date_written="2026-02-15 19:30:00"
    requires="4.73"
-   version="1.001"
+   version="1.002"
    >
 <description trim="y">
 <![CDATA[
@@ -65,14 +65,6 @@ local TRIGGER_ENABLED = 8
 local TRIGGER_OMIT_FROM_OUTPUT = 6
 local TRIGGER_REGEXP = 9
 
-local function GetAnyTriggerInfo(plugin_id, trigger_name, info_type)
-    if plugin_id == "" then
-        return GetTriggerInfo(trigger_name, info_type)
-    else
-        return GetPluginTriggerInfo(plugin_id, trigger_name, info_type)
-    end
-end
-
 function findtrigger_alias(name, line, wc)
     local search_text = wc[1]
     ColourNote("white", "", "Searching for triggers matching: " .. search_text .. " ...")
@@ -89,26 +81,21 @@ function findtrigger_alias(name, line, wc)
     local total_matches = 0
 
     for _, scope in ipairs(scopes) do
-        local trigger_list
-        if scope.id == "" then
-            trigger_list = GetTriggerList()
-        else
-            trigger_list = GetPluginTriggerList(scope.id)
-        end
-
+        local trigger_list = GetPluginTriggerList(scope.id)
+        
         scope.matches = {}
 
         if trigger_list then
             for _, trigger_name in ipairs(trigger_list) do
-                local match_str = GetAnyTriggerInfo(scope.id, trigger_name, TRIGGER_MATCH_TEXT)
+                local match_str = GetPluginTriggerInfo(scope.id, trigger_name, TRIGGER_MATCH_TEXT)
                 if match_str then
-                    local is_regex = GetAnyTriggerInfo(scope.id, trigger_name, TRIGGER_REGEXP)
+                    local is_regex = GetPluginTriggerInfo(scope.id, trigger_name, TRIGGER_REGEXP)
                     local re_str = match_str
                     
                     if not is_regex then
                         -- Convert wildcard to regex
                         -- Escape special characters: ^ $ ( ) % . [ ] + - ?
-                        re_str = string.gsub(re_str, "[%^%$%(%)%%%.%[%]%+%-%?]", "%%%1")
+                        re_str = string.gsub(re_str, "[%|%^%$%(%)%%%.%[%]%+%-%?]", "\\%1")
                         -- Replace * with (.*?)
                         re_str = string.gsub(re_str, "%*", "(.*?)")
                         -- Anchor
@@ -125,9 +112,9 @@ function findtrigger_alias(name, line, wc)
                             table.insert(scope.matches, {
                                 name = trigger_name,
                                 match = match_str,
-                                enabled = GetAnyTriggerInfo(scope.id, trigger_name, TRIGGER_ENABLED),
-                                script = GetAnyTriggerInfo(scope.id, trigger_name, TRIGGER_SCRIPT_NAME),
-                                squelch = GetAnyTriggerInfo(scope.id, trigger_name, TRIGGER_OMIT_FROM_OUTPUT)
+                                enabled = GetPluginTriggerInfo(scope.id, trigger_name, TRIGGER_ENABLED),
+                                script = GetPluginTriggerInfo(scope.id, trigger_name, TRIGGER_SCRIPT_NAME),
+                                squelch = GetPluginTriggerInfo(scope.id, trigger_name, TRIGGER_OMIT_FROM_OUTPUT)
                             })
                         end
                     end
