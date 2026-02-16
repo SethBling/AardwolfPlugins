@@ -11,7 +11,7 @@
    save_state="y"
    date_written="2025-07-28 11:00:00"
    requires="2.0"
-   version="1.006"
+   version="1.007"
    >
 <description trim="y">
 <![CDATA[
@@ -239,7 +239,7 @@ function OnPluginSend(cmd)
 
     local cmd_lower = string.lower(cmd)
 
-    local first_word, second_word = cmd_lower:match("^(%S+)%s*(%S*)")
+    local first_word, second_word = cmd_lower:match("^%s*(%S+)%s+(%S*)%s*")
     if first_word == "campa" or first_word == "campai" or first_word == "campaig" or first_word == "campaign" or first_word == "cp" or first_word == "q" or first_word == "qu" or first_word == "que" or first_word == "ques" or first_word == "quest" then
         if second_word == "r" or second_word == "re" or second_word == "req" or second_word == "requ" or second_word == "reque" or second_word == "reques" or second_word == "request" then
             if GetVariable("wish_slots") then

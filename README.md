@@ -51,6 +51,14 @@ deposit 200k
 give 1.2B sath
 ```
 
+**Aard_FindTrigger**
+
+Find triggers that can match the given line of output.
+
+```
+findtrigger <line>
+```
+
 **Aard_Memos**
 
 Write memos for yourself. Memos named after a player show up in their whois/finger.

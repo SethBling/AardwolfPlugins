@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE muclient>
+
+<muclient>
+<plugin
+   name="Aardwolf_FindTrigger"
+   author="Sath"
+   id="689d2c5e538c454796324a3a"
+   language="Lua"
+   purpose="'findtrigger <line>' finds triggers matching a given line of text."
+   save_state="y"
+   date_written="2026-02-15 19:30:00"
+   requires="4.73"
+   version="1.000"
+   >
+<description trim="y">
+<![CDATA[
+** This plugin finds triggers matching a given line of text.
+]]>
+</description>
+
+</plugin>
+
+<aliases>
+    <alias
+       match="findtrigger reload"
+       enabled="y"
+       script="reload_plugin"
+       sequence="100"
+    />
+    <alias
+       match="findtrigger update check"
+       enabled="y"
+       script="update_check_alias"
+       sequence="100"
+    />
+    <alias
+       match="findtrigger update install"
+       enabled="y"
+       script="update_install_alias"
+       sequence="100"
+    />
+    <alias
+        match="findtrigger *"
+        enabled="y"
+        script="findtrigger_alias"
+        sequence="110"
+    />
+</aliases>
+
+<script>
+<![CDATA[
+
+require("rex")
+require("wait")
+require("async")
+
+function OnPluginInstall()
+    ColourNote("white", "", plugin_prefix .. " Installed v" .. GetPluginInfo(GetPluginID(), 19) .. ". Use 'findtrigger <line>' to find triggers that will match the given line of text.")
+end
+
+function findtrigger_alias(name, line, wc)
+    local search_text = wc[1]
+    
+    ColourNote("white", "", "Searching for triggers matching: " .. search_text)
+
+    local client_matches = {}
+    local plugin_matches = {}
+
+    -- Search client/global triggers
+    local trigger_list = GetTriggerList()
+    if trigger_list then
+        for _, trigger_name in ipairs(trigger_list) do
+            local match_str = GetTriggerOption(trigger_name, "match")
+            if match_str then
+                local is_regex = GetTriggerOption(trigger_name, "regexp") == 1
+                local re_str = match_str
+                
+                if not is_regex then
+                    -- Convert wildcard to regex
+                    -- Escape special characters: ^ $ ( ) % . [ ] + - ?
+                    re_str = string.gsub(re_str, "[%^%$%(%)%%%.%[%]%+%-%?]", "%%%1")
+                    -- Replace * with (.*?)
+                    re_str = string.gsub(re_str, "%*", "(.*?)")
+                    -- Anchor
+                    re_str = "^" .. re_str .. "$"
+                end
+
+                local re = nil
+                local success, err = pcall(function() 
+                    re = rex.new(re_str) 
+                end)
+
+                if success and re then
+                    if re:match(search_text) then
+                        table.insert(client_matches, {
+                            plugin = "Global/Client",
+                            name = trigger_name,
+                            match = match_str,
+                            enabled = GetTriggerOption(trigger_name, "enabled") == 1
+                        })
+                    end
+                end
+            end
+        end
+    end
+
+    -- Search plugin triggers
+    local plugin_list = GetPluginList()
+    if plugin_list then
+        for _, plugin_id in ipairs(plugin_list) do
+            local plugin_name = GetPluginInfo(plugin_id, 1)
+            local trigger_list = GetPluginTriggerList(plugin_id)
+            if trigger_list then
+                for _, trigger_name in ipairs(trigger_list) do
+                    local match_str = GetPluginTriggerInfo(plugin_id, trigger_name, 1)
+                    if match_str then
+                        local is_regex = GetPluginTriggerInfo(plugin_id, trigger_name, 9) -- 19 is regexp boolean
+                        local re_str = match_str
+
+                        if not is_regex then
+                            -- Convert wildcard to regex
+                            re_str = string.gsub(re_str, "[%^%$%(%)%%%.%[%]%+%-%?]", "%%%1")
+                            re_str = string.gsub(re_str, "%*", "(.*?)")
+                            re_str = "^" .. re_str .. "$"
+                        end
+
+                        local re = nil
+                        local success, err = pcall(function() 
+                            re = rex.new(re_str) 
+                        end)
+        
+                        if success and re then
+                            if re:match(search_text) then
+                                table.insert(plugin_matches, {
+                                    plugin = plugin_name,
+                                    name = trigger_name,
+                                    match = match_str,
+                                    enabled = GetPluginTriggerInfo(plugin_id, trigger_name, 8)
+                                })
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    -- Sort matches: Plugin/Global first, then Enabled/Disabled
+    table.sort(client_matches, function(a, b)
+        if a.enabled ~= b.enabled then
+             return a.enabled
+        end
+        return a.name < b.name
+    end)
+    
+    table.sort(plugin_matches, function(a, b)
+        if a.plugin ~= b.plugin then
+            return a.plugin < b.plugin
+        end
+        if a.enabled ~= b.enabled then
+             return a.enabled
+        end
+        return a.name < b.name
+    end)
+
+    if #client_matches == 0 and #plugin_matches == 0 then
+        ColourNote("silver", "", "No matching triggers found.")
+    else
+        ColourNote("white", "", "Found " .. (#client_matches + #plugin_matches) .. " matching trigger(s):")
+        
+        if #client_matches > 0 then
+            ColourNote("cyan", "", "Global/Client:")
+            for _, match in ipairs(client_matches) do
+                local color = "white" -- Default for disabled
+                local status = "[Disabled]"
+                if match.enabled then
+                    color = "lime"
+                    status = "[Enabled] "
+                else
+                    color = "red"
+                end
+                
+                ColourTell(color, "", "  " .. status)
+                ColourTell("silver", "", " " .. match.name)
+                ColourTell("gray", "", " (" .. match.match .. ")")
+                Note()
+            end
+        end
+
+        local last_plugin = ""
+        for _, match in ipairs(plugin_matches) do
+            if match.plugin ~= last_plugin then
+                ColourNote("cyan", "", match.plugin .. ":")
+                last_plugin = match.plugin
+            end
+            
+            local color = "white" -- Default for disabled
+            local status = "[Disabled]"
+            if match.enabled then
+                color = "lime"
+                status = "[Enabled] "
+            else
+                color = "red"
+            end
+            
+            ColourTell(color, "", "  " .. status)
+            ColourTell("silver", "", " " .. match.name)
+            ColourTell("gray", "", " (" .. match.match .. ")")
+            Note()
+        end
+    end
+end
+
+----------------------- Plugin Update Code -----------------------
+-- URL would be updated when hosted
+plugin_url = "https://sethbling.s3.us-west-2.amazonaws.com/Downloads/Aardwolf/plugins/aard_findtrigger.xml"
+SetVariable("DownloadURL", plugin_url)
+plugin_protocol = "HTTPS"
+plugin_prefix = "[FindTrigger]"
+
+
+function update_check_alias()
+    update_plugin("check")
+    ColourNote("white", "", plugin_prefix .. " Checking for updated version...")
+end
+
+function update_install_alias()
+    update_plugin("install")
+    ColourNote("white", "", plugin_prefix .. " Checking for and installing updated version...")
+end
+
+function reload_plugin()
+    local scriptPrefix = GetAlphaOption("script_prefix")
+    local retval
+
+    -- If the user has not already specified the script prefix for this version of mush, pick a
+    -- reasonable default value
+    if (scriptPrefix == "") then
+        scriptPrefix = "\\\\\\"
+        SetAlphaOption("script_prefix", scriptPrefix)
+    end
+
+    -- Tell mush to reload the plugin in one second.  We can't do it directly here because a
+    -- plugin can't unload itself.  Even if it could, how could it tell mush to load it again
+    -- if it weren't installed? 
+    retval = Execute(scriptPrefix.."DoAfterSpecial(0.1, \"ReloadPlugin('"..GetPluginID().."')\", sendto.script)")
+end
+
+function update_plugin(mode)
+    update_mode = mode
+
+    wait.make(get_plugin_file)
+end
+
+function get_plugin_file()
+    local urlThread = async.request(plugin_url, plugin_protocol)
+
+    if not urlThread then
+        ColourNote("red", "", "Couldn't create async url request.")
+        return
+    end
+
+    local timeout = 10
+    local totTime = 0
+    while (urlThread:alive() and totTime < timeout) do
+        wait.time(0.1)
+        totTime = totTime + 0.1
+    end
+
+    local remoteRet, pluginData, status, headers, fullStatus = urlThread:join()
+
+    if not status then
+        ColourNote("red", "", plugin_prefix .. " Couldn't download plugin file. No status code.")
+        
+        return
+    end
+
+    if (status ~= 200) then
+        ColourNote("red", "", plugin_prefix .. " Plugin file request status code: " .. status .. ": " .. fullStatus)
+        return
+    end
+    
+    local currentVersion = GetPluginInfo(GetPluginID(), 19) or 0
+    local currentVerStr  = string.format("%1.3f", currentVersion)
+    local remoteVerStr   = string.match(pluginData, '%s%s+version="([0-9%.]+)"')
+    local remoteVersion  = tonumber(remoteVerStr or "") or 0
+
+    if remoteVersion == currentVersion then
+        ColourNote("white", "", plugin_prefix .. " You are running the most recent version (v" .. currentVerStr .. ")")
+    elseif (remoteVersion < currentVersion) then
+        ColourNote("white", "", plugin_prefix .. " You have a newer version than is publicly available. (v" .. currentVerStr .. ")")
+    elseif (update_mode == "check") then
+        ColourNote("white", "", plugin_prefix .. " You are running v" .. currentVerStr .. ", but there's a newer version v" .. remoteVerStr)
+    elseif (update_mode == "install") then
+        ColourNote("white", "", plugin_prefix .. " Updating plugin from version " .. currentVerStr .. " to version " .. remoteVerStr) 
+
+        local pluginFile = GetPluginInfo(GetPluginID(), 6)
+        local file = io.open(pluginFile, "wb")
+
+        if file then
+            file:write(pluginData)
+            file:close()
+            reload_plugin()
+        else
+            ColourNote("red", "", plugin_prefix .. " Couldn't open file " .. pluginFile .. " for writing.")
+        end
+    else
+        ColourNote("red", "", plugin_prefix .. " Invalid update mode: " .. update_mode)
+    end
+end
+----------------------- End Plugin Update Code -----------------------
+
+]]>
+</script>
+
+</muclient>
