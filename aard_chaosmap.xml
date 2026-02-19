@@ -11,7 +11,7 @@
    save_state="y"
    date_written="2023-04-17 11:00:00"
    requires="2.0"
-   version="1.020"
+   version="1.021"
    >
 <description trim="y">
 <![CDATA[
@@ -690,7 +690,7 @@ function list_alias(name, line, wc)
                 golden_marker = "*"
             end
             
-            local mapper_dest = ""
+            local mapper_dest = "No"
             for _, mapper_data in ipairs(db_portals) do
                 if string.find(mapper_data.cmd, item.id, 1, true) or GetVariable("matchbylanding") ~= "false" and mapper_data.dest == item.data.dest then
                     if mapper_data.dest == (item.data.dest or "-1") then
@@ -774,12 +774,28 @@ function delete_alias(name, line, wc)
         if wc[1] == id or wc[1] == data.id then
             ColourNote("yellow", "", "[ChaosMap] Deleted portal " .. wc[1] .. " (id=" .. id .. ", dest=" .. (data.dest or "") .. ")")
             chaos_portals[id] = nil
+            
+            for _, db_portal in ipairs(db_portals) do
+                if string.find(db_portal.cmd, id, 1, true) or GetVariable("matchbylanding") ~= "false" and db_portal.dest == data.dest then
+                    if temp_lock[db_portal.cmd] then
+                        ColourNote("yellow", "", "[ChaosMap] Removed temp lock for " .. db_portal.cmd)
+                        temp_lock[db_portal.cmd] = nil
+                    end
+                    if backup_lock[db_portal.cmd] then
+                        ColourNote("yellow", "", "[ChaosMap] Removed backup lock for " .. db_portal.cmd)
+                        backup_lock[db_portal.cmd] = nil
+                    end
+                end
+            end
+
             any = true
         end
     end
     
     if any then
         SetVariable("chaos_portals", json.encode(chaos_portals))
+        SetVariable("temp_lock", json.encode(temp_lock))
+        SetVariable("backup_lock", json.encode(backup_lock))
     else
         ColourNote("white", "", "[ChaosMap] No portal with id '" .. wc[1] .. "'. Use 'chaosmap list' to see portals.")
     end
@@ -792,6 +808,12 @@ function deleteall_alias(name, line, wc)
         
         zone_ids = {}
         SetVariable("zone_ids", "{}")
+
+        temp_lock = {}
+        SetVariable("temp_lock", "{}")
+
+        backup_lock = {}
+        SetVariable("backup_lock", "{}")
         
         ColourNote("yellow", "", "[ChaosMap] Deleted all tracked portals.")
     else
@@ -1018,23 +1040,27 @@ function use_next()
 end
 
 function gq_alias(name, line, wc)
+    read_db_portals()
     enable_chaos(wc[1] == "end")
 end
 
 function enable_chaos(enable)
     local count = 0
+    local handled = {}
     
     -- Enable/disable mapped portals
     for id, data in pairs(chaos_portals) do
         if not data.golden then
             count = count + enable_id(id, data.dest, enable)
+            handled[id] = true
         end
     end
 
     -- Enable/disable unmapped portals
     for id, data in pairs(portal_locations) do
-        if not data.golden then
+        if not data.golden and not handled[id] then
             count = count + enable_id(id, nil, enable)
+            handled[id] = true
         end
     end
     
