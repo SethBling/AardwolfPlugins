@@ -24,7 +24,7 @@
 <triggers>
 	<trigger
 	   enabled="y"
-	   match="^(Weight |Items  ): +(-?\d+) of (\d+) *$"
+	   match="^(Weight |Items  ): +(-?\d+) of (\d+) *(?:\(\d+ real items?\))? *$"
 	   regexp="y"
 	   script="weight_or_items"
 	   sequence="100"
