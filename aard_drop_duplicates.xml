@@ -11,7 +11,7 @@
    save_state="n"
    date_written="2021-02-03 11:00:00"
    requires="2.0"
-   version="1.0"
+   version="1.1"
    >
 <description trim="y">
 <![CDATA[
@@ -141,7 +141,7 @@ function get_duplicates(action)
 	keyring_remove_count = 0
 	duplicates_action = action
 	duplicates = {}
-	nonkept_names = {}
+	items_to_keep = {}
 end
 
 function do_drop_duplicates()
@@ -187,19 +187,36 @@ function invdata_item(name, line, wc)
 	local flags = wc[2]
 	local name = wc[3]
 	local keep = string.find(flags, "K")
+	local type = wc[5]
+	local duration = wc[8]
 	
 	item = {
 		id=id,
 		name=name,
-		keep=keep
+		keep=keep,
+		type=type,
+		duration=duration
 	}
 	
-	if nonkept_names[name] then
+	if items_to_keep[name] then
 		if keep then
-			if not nonkept_names[name].keep then
+			if not items_to_keep[name].keep then
 				-- Keep this item, but drop original item
-				table.insert(duplicates, nonkept_names[name])
-				nonkept_names[name] = item
+				table.insert(duplicates, items_to_keep[name])
+				items_to_keep[name] = item
+			end
+		elseif type == "13" then
+			-- 13 is type key, keep the one with the longest or infinite (-1) duration
+			if tonumber(items_to_keep[name].duration) == -1 then
+				table.insert(duplicates, item)
+			elseif tonumber(duration) == -1 then
+				table.insert(duplicates, items_to_keep[name])
+				items_to_keep[name] = item
+			elseif tonumber(duration) > tonumber(items_to_keep[name].duration) then
+				table.insert(duplicates, items_to_keep[name])
+				items_to_keep[name] = item
+			else
+				table.insert(duplicates, item)
 			end
 		else
 			-- Is duplicate, drop
@@ -207,7 +224,7 @@ function invdata_item(name, line, wc)
 		end
 	else
 		-- Track item name
-		nonkept_names[name] = item
+		items_to_keep[name] = item
 	end
 end
 
